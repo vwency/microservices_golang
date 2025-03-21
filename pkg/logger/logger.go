@@ -2,7 +2,6 @@ package logger
 
 import (
 	"log"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -32,20 +31,4 @@ func Init(logLevel string) {
 	}
 
 	Log = zapLogger.Sugar()
-}
-
-func Info(args ...interface{}) {
-	Log.Info(args...)
-}
-
-func Error(args ...interface{}) {
-	Log.Error(args...)
-}
-
-func Debug(args ...interface{}) {
-	Log.Debug(args...)
-}
-
-func Fatal(args ...interface{}) {
-	Log.Fatal(args...)
 }
