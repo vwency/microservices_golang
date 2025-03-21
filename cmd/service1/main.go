@@ -2,7 +2,6 @@ package main
 
 import (
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 
@@ -15,11 +14,7 @@ import (
 var Cfg config.ServiceConfig
 
 func main() {
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "dev"
-	}
-
+	env := config.DetectEnv()
 	config.Init(env, "service1", &Cfg)
 
 	logger.Init(Cfg.App.LogLevel)

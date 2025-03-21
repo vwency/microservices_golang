@@ -20,10 +20,10 @@ func Init(logLevel string) {
 	}
 
 	cfg := zap.NewProductionConfig()
-	cfg.Level = zap.NewAtomicLevelAt(level) // Устанавливаем уровень логирования
+	cfg.Level = zap.NewAtomicLevelAt(level)
 
 	if logLevel == "dev" {
-		cfg = zap.NewDevelopmentConfig() // Читаемый формат для Dev
+		cfg = zap.NewDevelopmentConfig()
 	}
 
 	zapLogger, err = cfg.Build()
