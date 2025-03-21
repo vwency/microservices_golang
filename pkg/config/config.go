@@ -11,19 +11,15 @@ func Init(env, servicePath string, cfg any) {
 	viper.SetConfigName("config." + env)
 	viper.SetConfigType("yaml")
 
-	// Пути поиска
-	viper.AddConfigPath(fmt.Sprintf("./config/%s", servicePath)) // ./config/service1/
-	viper.AddConfigPath(".")                                     // fallback в текущую директорию
+	viper.AddConfigPath(fmt.Sprintf("./config/%s", servicePath))
+	viper.AddConfigPath(".")
 
-	// Чтение конфига
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file: %v", err)
 	}
 
-	// Чтение переменных окружения
 	viper.AutomaticEnv()
 
-	// Декодирование в структуру
 	if err := viper.Unmarshal(cfg); err != nil {
 		log.Fatalf("Unable to decode into struct: %v", err)
 	}

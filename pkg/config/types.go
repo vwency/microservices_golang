@@ -1,6 +1,5 @@
 package config
 
-// ServiceConfig содержит настройки для сервиса
 type ServiceConfig struct {
 	App struct {
 		Env      string `mapstructure:"env"`
