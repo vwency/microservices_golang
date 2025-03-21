@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package service1;
+package hello_service;
 
-option go_package = "github.com/vwency/microservices_golang/proto/service1";
+option go_package = "github.com/vwency/microservices_golang/proto/hello_service";
 
 service HelloService {
   rpc SayHello (HelloRequest) returns (HelloResponse);

@@ -1,12 +1,12 @@
-version: '3'
+version: "3"
 
 tasks:
-    run-service1:
-        desc: Run service1
-        cmds:
-          - go run ./cmd/service1
+  run-hello_service:
+    desc: Run hello_service
+    cmds:
+      - go run ./cmd/hello_service
 
-    proto-generate:
-        desc: Generate gRPC code from proto
-        cmds:
-          - protoc --go_out=proto/service1 --go-grpc_out=proto/service1 \ --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \ proto/service1.proto
+  proto-generate:
+    desc: Generate gRPC code from proto
+    cmds:
+      - protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative proto/hello_service/hello_service.proto

@@ -5,17 +5,17 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/vwency/microservices_golang/internal/service1/handler"
+	"github.com/vwency/microservices_golang/internal/hello_service/handler"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
-	"github.com/vwency/microservices_golang/proto/service1"
+	"github.com/vwency/microservices_golang/proto/hello_service"
 )
 
 var Cfg config.ServiceConfig
 
 func main() {
 	env := config.DetectEnv()
-	config.Init(env, "service1", &Cfg)
+	config.Init(env, "hello_service", &Cfg)
 
 	logger.Init(Cfg.App.LogLevel)
 
@@ -31,7 +31,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	helloHandler := handler.NewHelloHandler()
-	service1.RegisterHelloServiceServer(grpcServer, helloHandler)
+	hello_service.RegisterHelloServiceServer(grpcServer, helloHandler)
 
 	logger.Info("gRPC server is running on port " + port)
 	if err := grpcServer.Serve(lis); err != nil {
