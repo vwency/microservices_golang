@@ -1,1 +1,5 @@
-.
+app:
+    env: dev
+    port: "50051"
+    log_level: debug
+    service_name: "hello_service"

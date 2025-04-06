@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package database_init;
+
+option go_package = "github.com/vwency/microservices_golang/proto/database_init";
+
+service DatabaseInitService {
+  rpc InitDatabase (InitRequest) returns (InitResponse);
+}
+
+message InitRequest {
+  string config_path = 1;
+}
+
+message InitResponse {
+  bool success = 1;
+  string message = 2;
+}

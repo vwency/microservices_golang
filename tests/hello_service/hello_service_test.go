@@ -2,12 +2,13 @@ package hello_service_test
 
 import (
 	"context"
-	"testing"
 	"net"
+	"testing"
+
+	"github.com/vwency/microservices_golang/internal/hello_service/handler"
+	"github.com/vwency/microservices_golang/proto/hello_service"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vwency/microservices_golang/proto/hello_service"
-	"github.com/vwency/microservices_golang/internal/hello_service/handler"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
