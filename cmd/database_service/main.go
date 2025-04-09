@@ -5,12 +5,12 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/vwency/microservices_golang/internal/database_init_service/handler"
-	"github.com/vwency/microservices_golang/internal/database_init_service/repository"
-	"github.com/vwency/microservices_golang/internal/database_init_service/usecase"
+	"github.com/vwency/microservices_golang/internal/database/handler"
+	"github.com/vwency/microservices_golang/internal/database/repository"
+	"github.com/vwency/microservices_golang/internal/database/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
-	pb "github.com/vwency/microservices_golang/proto/database_init"
+	pb "github.com/vwency/microservices_golang/proto/database"
 )
 
 var Cfg config.ServiceConfig

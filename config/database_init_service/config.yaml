@@ -5,5 +5,5 @@ app:
   service_name: "database_init_service"
 
 database:
-  url: "postgres://user:password@localhost:5432/dbname?sslmode=disable"
+  url: "postgres://postgres:12345678@localhost:5432/pure"
   migrations_path: "./deploy/migrations"

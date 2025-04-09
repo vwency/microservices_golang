@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 
-	pb "github.com/vwency/microservices_golang/proto/database_init"
+	pb "github.com/vwency/microservices_golang/proto/database"
 
-	"github.com/vwency/microservices_golang/internal/database_init_service/usecase"
+	"github.com/vwency/microservices_golang/internal/database/usecase"
 )
 
 type DatabaseInitHandler struct {

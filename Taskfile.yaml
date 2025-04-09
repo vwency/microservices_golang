@@ -9,11 +9,16 @@ tasks:
     cmds:
       - go run ./cmd/hello_service
 
+  run-database:
+    desc: Run hello_service
+    cmds:
+      - go run ./cmd/database_service
+
   proto-generate:
     desc: Generate gRPC code from proto
     cmds:
-      - protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./proto/hello_service/hello_service.proto
-      - protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./proto/database_init/database_init.proto
+      - protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./proto/**/*.proto
+     
 
   generate-gomod:
     desc: Generate go.mod preserving requirements
@@ -29,6 +34,7 @@ tasks:
       - chmod +x ./update_deps.sh
       - ./update_deps.sh
       - go mod edit -fmt
+      - go mod vendor
 
   clean-unused-deps:
     desc: Remove unnecessary dependencies from go.mod and go.sum
