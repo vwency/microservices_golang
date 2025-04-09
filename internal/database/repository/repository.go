@@ -1,13 +1,11 @@
 package repository
 
 import (
-	"fmt"
-
 	"github.com/vwency/microservices_golang/internal/database/models"
-	"github.com/vwency/microservices_golang/internal/database/repository/user"
 	"gorm.io/gorm"
 )
 
+// UserRepository defines the interface for user-related database operations
 type UserRepository interface {
 	RunMigrations() error
 	GetUserByUsernameOrEmail(username, email string) (*models.User, error)
@@ -15,12 +13,39 @@ type UserRepository interface {
 	UpdateUserTokens(username, hashedRt, hashedAt string) error
 }
 
+// UserRepository struct implements the UserRepository interface
+type UserRepositoryImpl struct {
+	db *gorm.DB
+}
+
 func NewUserRepository(db *gorm.DB) UserRepository {
-	repo := user.NewUserRepository(db)
+	return &UserRepositoryImpl{db: db}
+}
 
-	if err := repo.RunMigrations(); err != nil {
-		panic(fmt.Sprintf("failed to run migrations: %v", err))
+func (r *UserRepositoryImpl) RunMigrations() error {
+	return r.db.AutoMigrate(&models.User{})
+}
+
+func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
+	var user models.User
+	result := r.db.Where("username = ? OR email = ?", username, email).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
 	}
+	return &user, nil
+}
 
-	return repo
+func (r *UserRepositoryImpl) AddUser(user *models.User) error {
+	result := r.db.Create(user)
+	return result.Error
+}
+
+func (r *UserRepositoryImpl) UpdateUserTokens(username, hashedRt, hashedAt string) error {
+	result := r.db.Model(&models.User{}).
+		Where("username = ?", username).
+		Updates(map[string]interface{}{
+			"hashed_rt": hashedRt,
+			"hashed_at": hashedAt,
+		})
+	return result.Error
 }

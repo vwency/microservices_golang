@@ -3,8 +3,8 @@ package main
 import (
 	"net"
 
-	"github.com/vwency/microservices_golang/internal/database/handler"
-	repository "github.com/vwency/microservices_golang/internal/database/repository/user"
+	"github.com/vwency/microservices_golang/internal/database/delivery/gprc/handler"
+	"github.com/vwency/microservices_golang/internal/database/repository"
 	"github.com/vwency/microservices_golang/internal/database/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
@@ -17,30 +17,30 @@ import (
 var Cfg config.ServiceConfig
 
 func main() {
-	// Инициализация конфигурации
+	// Initialize configuration
 	env := config.DetectEnv()
 	config.Init(env, "database_init_service", &Cfg)
 
-	// Инициализация логирования
+	// Initialize logger
 	logger.Init(Cfg.App.LogLevel)
 
-	// Подключение к базе данных
+	// Connect to database
 	dsn := Cfg.Database.URL
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Fatal("failed to connect to database: %v", err)
 	}
 
-	// Инициализация репозитория
-	repo := repository.NewUserRepository(db)
+	// Initialize repository
+	repo := repository.NewUserRepository(db) // This is now passed correctly as an interface
 
-	// Инициализация UseCase
+	// Initialize UseCase
 	uc := usecase.NewInitUseCase(repo)
 
-	// Инициализация обработчика
-	handler := handler.NewHandler(uc)
+	// Initialize handler
+	handler := handler.NewHandler(uc) // Make sure we are calling NewHandler
 
-	// Запуск gRPC-сервера
+	// Start gRPC server
 	lis, err := net.Listen("tcp", ":"+Cfg.App.Port)
 	if err != nil {
 		logger.Fatal("failed to listen: %v", err)
@@ -48,12 +48,12 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	// Регистрируем сервис
+	// Register the service
 	pb.RegisterDatabaseInitServiceServer(grpcServer, handler)
 
 	logger.Info("Starting database init service on port " + Cfg.App.Port)
 
-	// Запуск gRPC сервера
+	// Start gRPC server
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Fatal("failed to serve: %v", err)
 	}
