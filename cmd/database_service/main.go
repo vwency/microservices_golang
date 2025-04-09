@@ -4,7 +4,7 @@ import (
 	"net"
 
 	"github.com/vwency/microservices_golang/internal/database/delivery/gprc/handler"
-	"github.com/vwency/microservices_golang/internal/database/repository"
+	"github.com/vwency/microservices_golang/internal/database/repository" // Исправленный импорт
 	"github.com/vwency/microservices_golang/internal/database/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
@@ -32,13 +32,13 @@ func main() {
 	}
 
 	// Initialize repository
-	repo := repository.NewUserRepository(db) // This is now passed correctly as an interface
+	repo := repository.NewRepository(db) // Создаем репозиторий через Repository, а не напрямую через user_repository
 
 	// Initialize UseCase
-	uc := usecase.NewInitUseCase(repo)
+	uc := usecase.NewInitUseCase(repo.UserRepo) // Передаем репозиторий в usecase
 
 	// Initialize handler
-	handler := handler.NewHandler(uc) // Make sure we are calling NewHandler
+	handler := handler.NewHandler(uc)
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":"+Cfg.App.Port)
