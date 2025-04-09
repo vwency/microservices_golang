@@ -12,4 +12,10 @@ type ServiceConfig struct {
 		URL            string `mapstructure:"url"`
 		MigrationsPath string `mapstructure:"migrations_path"`
 	} `mapstructure:"database"`
+
+	Jwt struct {
+		Secret          string `mapstructure:"secret"`
+		AccessTokenTtl  string `mapstructure:"access_token_ttl"`
+		RefreshTokenTtl string `mapstructure:"refresh_token_ttl"`
+	} `mapstructure:"jwt"`
 }
