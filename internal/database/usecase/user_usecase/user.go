@@ -5,55 +5,106 @@ import (
 	"fmt"
 
 	"github.com/vwency/microservices_golang/internal/database/models"
+	"github.com/vwency/microservices_golang/internal/database/repository/user_repository"
+	"go.uber.org/zap"
 )
 
-func (uc *InitUseCase) GetUser(username, email string) (*models.User, error) {
+type UserUsecase struct {
+	repo   user_repository.UserRepository
+	logger *zap.Logger
+}
+
+func New(repo user_repository.UserRepository, logger *zap.Logger) *UserUsecase {
+	return &UserUsecase{
+		repo:   repo,
+		logger: logger,
+	}
+}
+
+func (uc *UserUsecase) GetUser(username, email string) (*models.User, error) {
+	if username == "" && email == "" {
+		return nil, errors.New("username and email cannot both be empty")
+	}
+
 	user, err := uc.repo.GetUserByUsernameOrEmail(username, email)
 	if err != nil {
-		return nil, fmt.Errorf("database error: %w", err)
+		uc.logger.Error("failed to get user",
+			zap.String("username", username),
+			zap.String("email", email),
+			zap.Error(err))
+		return nil, fmt.Errorf("get user failed: %w", err)
 	}
 	return user, nil
 }
 
-func (uc *InitUseCase) AddUser(username, password, hashedRt, hashedAt, email string) error {
-	existingUser, err := uc.repo.GetUserByUsernameOrEmail(username, email)
-	if err != nil {
-		return fmt.Errorf("error checking user existence: %w", err)
+func (uc *UserUsecase) CreateUser(params CreateUserParams) error {
+	if err := params.Validate(); err != nil {
+		uc.logger.Warn("validation failed",
+			zap.String("username", params.Username),
+			zap.Error(err))
+		return fmt.Errorf("validation error: %w", err)
 	}
 
+	existingUser, err := uc.repo.GetUserByUsernameOrEmail(params.Username, params.Email)
+	if err != nil {
+		uc.logger.Error("failed to check user existence",
+			zap.String("username", params.Username),
+			zap.Error(err))
+		return fmt.Errorf("check user existence failed: %w", err)
+	}
 	if existingUser != nil {
-		return errors.New("user with the same username or email already exists")
+		uc.logger.Warn("user already exists",
+			zap.String("username", params.Username))
+		return ErrUserAlreadyExists
 	}
 
 	user := &models.User{
-		Username: username,
-		Password: password,
-		HashedRt: hashedRt,
-		HashedAt: hashedAt,
-		Email:    &email,
+		Username: params.Username,
+		Password: params.Password,
+		HashedRt: params.HashedRt,
+		HashedAt: params.HashedAt,
+		Email:    &params.Email,
 	}
 
 	if err := uc.repo.AddUser(user); err != nil {
-		return fmt.Errorf("failed to add user: %w", err)
+		uc.logger.Error("failed to create user",
+			zap.String("username", params.Username),
+			zap.Error(err))
+		return fmt.Errorf("create user failed: %w", err)
 	}
 
+	uc.logger.Info("user created successfully",
+		zap.String("username", params.Username))
 	return nil
 }
 
-func (uc *InitUseCase) UpdateUserTokens(username, hashedRt, hashedAt string) error {
+func (uc *UserUsecase) UpdateTokens(username, hashedRt, hashedAt string) error {
+	if username == "" {
+		uc.logger.Warn("empty username provided")
+		return errors.New("username cannot be empty")
+	}
+
 	user, err := uc.GetUser(username, "")
 	if err != nil {
-		return fmt.Errorf("error retrieving user: %w", err)
+		uc.logger.Error("failed to get user for token update",
+			zap.String("username", username),
+			zap.Error(err))
+		return fmt.Errorf("get user failed: %w", err)
 	}
-
 	if user == nil {
-		return fmt.Errorf("user '%s' not found", username)
+		uc.logger.Warn("user not found for token update",
+			zap.String("username", username))
+		return ErrUserNotFound
 	}
 
-	err = uc.repo.UpdateUserTokens(user.Username, hashedRt, hashedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update user tokens: %w", err)
+	if err := uc.repo.UpdateUserTokens(username, hashedRt, hashedAt); err != nil {
+		uc.logger.Error("failed to update tokens",
+			zap.String("username", username),
+			zap.Error(err))
+		return fmt.Errorf("update tokens failed: %w", err)
 	}
 
+	uc.logger.Info("tokens updated successfully",
+		zap.String("username", username))
 	return nil
 }

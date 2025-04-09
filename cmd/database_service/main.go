@@ -1,17 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"net"
 
-	handler_user_service "github.com/vwency/microservices_golang/internal/database/delivery/gprc/handler/user_service"
-	"github.com/vwency/microservices_golang/internal/database/repository"
-	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase" // исправляем импорт
-	"github.com/vwency/microservices_golang/pkg/config"
-	"github.com/vwency/microservices_golang/pkg/logger"
-	pb "github.com/vwency/microservices_golang/proto/database"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+
+	handler_user_service "github.com/vwency/microservices_golang/internal/database/delivery/grpc/handler/user_service"
+	"github.com/vwency/microservices_golang/internal/database/repository"
+	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase"
+	"github.com/vwency/microservices_golang/pkg/config"
+	"github.com/vwency/microservices_golang/pkg/database"
 )
 
 var Cfg config.ServiceConfig
@@ -20,32 +20,35 @@ func main() {
 	env := config.DetectEnv()
 	config.Init(env, "database_service", &Cfg)
 
-	logger.Init(Cfg.App.LogLevel)
-
-	dsn := Cfg.Database.URL
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	logger, err := zap.NewProduction()
 	if err != nil {
-		logger.Fatal("failed to connect to database: %v", err)
+		panic(fmt.Sprintf("Failed to initialize logger: %v", err))
+	}
+	defer logger.Sync()
+
+	db, err := database.NewGORM(Cfg.Database.URL)
+	if err != nil {
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
 	repo := repository.NewRepository(db)
+	userUC := user_usecase.New(repo.UserRepo, logger)
 
-	uc := user_usecase.NewInitUseCase(repo.UserRepo)
-
-	server := handler_user_service.NewServer(uc)
-
-	lis, err := net.Listen("tcp", ":"+Cfg.App.Port)
+	lis, err := net.Listen("tcp", "0.0.0.0:"+Cfg.App.Port)
 	if err != nil {
-		logger.Fatal("failed to listen: %v", err)
+		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
 	grpcServer := grpc.NewServer()
+	userHandler := handler_user_service.NewServer(userUC, logger)
+	userHandler.Register(grpcServer)
 
-	pb.RegisterDatabaseInitServiceServer(grpcServer, server)
-
-	logger.Info("Starting database init service on port " + Cfg.App.Port)
+	logger.Info("Starting server",
+		zap.String("service", Cfg.App.ServiceName),
+		zap.String("port", Cfg.App.Port),
+	)
 
 	if err := grpcServer.Serve(lis); err != nil {
-		logger.Fatal("failed to serve: %v", err)
+		logger.Fatal("gRPC server failed", zap.Error(err))
 	}
 }

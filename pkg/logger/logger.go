@@ -2,11 +2,13 @@ package logger
 
 import (
 	"log"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var Log *zap.SugaredLogger
+var globalLogger *zap.Logger
 
 func Init(logLevel string) {
 	var zapLogger *zap.Logger
@@ -31,4 +33,9 @@ func Init(logLevel string) {
 	}
 
 	Log = zapLogger.Sugar()
+
+}
+
+func GetLogger() *zap.Logger {
+	return globalLogger
 }

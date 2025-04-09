@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/vwency/microservices_golang/internal/database/repository/user_repository" // Импортируем правильно
+	user_repository "github.com/vwency/microservices_golang/internal/database/repository/user_repository"
 	"gorm.io/gorm"
 )
 
@@ -10,9 +10,7 @@ type Repository struct {
 }
 
 func NewRepository(db *gorm.DB) *Repository {
-	userRepo := user_repository.NewUserRepository(db)
-
 	return &Repository{
-		UserRepo: userRepo,
+		UserRepo: user_repository.NewUserRepository(db),
 	}
 }
