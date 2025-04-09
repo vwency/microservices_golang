@@ -3,19 +3,17 @@ package handler_user_service
 import (
 	"context"
 
-	"github.com/vwency/microservices_golang/internal/database/usecase"
+	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase"
 	pb "github.com/vwency/microservices_golang/proto/database"
 )
 
 type AddUserHandler struct {
 	pb.UnimplementedDatabaseInitServiceServer
-	usecase *usecase.InitUseCase
+	usecase *user_usecase.InitUseCase
 }
 
-func NewAddUserHandler(uc *usecase.InitUseCase) *AddUserHandler {
-	return &AddUserHandler{
-		usecase: uc,
-	}
+func NewAddUserHandler(uc *user_usecase.InitUseCase) *AddUserHandler {
+	return &AddUserHandler{usecase: uc}
 }
 
 func (h *AddUserHandler) AddUser(ctx context.Context, req *pb.AddUserRequest) (*pb.AddUserResponse, error) {

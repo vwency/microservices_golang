@@ -3,16 +3,16 @@ package handler_user_service
 import (
 	"context"
 
-	"github.com/vwency/microservices_golang/internal/database/usecase"
+	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase" // Исправленный импорт
 	pb "github.com/vwency/microservices_golang/proto/database"
 )
 
 type UpdateUserHandler struct {
 	pb.UnimplementedDatabaseInitServiceServer
-	usecase *usecase.InitUseCase
+	usecase *user_usecase.InitUseCase // Используем правильный тип
 }
 
-func NewUpdateUserHandler(uc *usecase.InitUseCase) *UpdateUserHandler {
+func NewUpdateUserHandler(uc *user_usecase.InitUseCase) *UpdateUserHandler { // Используем правильный тип
 	return &UpdateUserHandler{
 		usecase: uc,
 	}

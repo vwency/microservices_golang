@@ -1,28 +1,11 @@
-package usecase
+package user_usecase
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/vwency/microservices_golang/internal/database/models"
-	"github.com/vwency/microservices_golang/internal/database/repository/user_repository"
 )
-
-type InitUseCase struct {
-	repo user_repository.UserRepository
-}
-
-func NewInitUseCase(repo user_repository.UserRepository) *InitUseCase {
-	return &InitUseCase{repo: repo}
-}
-
-func (uc *InitUseCase) InitDatabase() error {
-	err := uc.repo.RunMigrations()
-	if err != nil {
-		return fmt.Errorf("failed to initialize database: %w", err)
-	}
-	return nil
-}
 
 func (uc *InitUseCase) GetUser(username, email string) (*models.User, error) {
 	user, err := uc.repo.GetUserByUsernameOrEmail(username, email)
@@ -42,21 +25,15 @@ func (uc *InitUseCase) AddUser(username, password, hashedRt, hashedAt, email str
 		return errors.New("user with the same username or email already exists")
 	}
 
-	var emailPtr *string
-	if email != "" {
-		emailPtr = &email
-	}
-
 	user := &models.User{
 		Username: username,
 		Password: password,
 		HashedRt: hashedRt,
 		HashedAt: hashedAt,
-		Email:    emailPtr,
+		Email:    &email,
 	}
 
-	err = uc.repo.AddUser(user)
-	if err != nil {
+	if err := uc.repo.AddUser(user); err != nil {
 		return fmt.Errorf("failed to add user: %w", err)
 	}
 

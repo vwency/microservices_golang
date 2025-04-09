@@ -3,16 +3,16 @@ package handler_user_service
 import (
 	"context"
 
-	"github.com/vwency/microservices_golang/internal/database/usecase"
+	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase" // Исправленный импорт
 	pb "github.com/vwency/microservices_golang/proto/database"
 )
 
 type GetUserHandler struct {
 	pb.UnimplementedDatabaseInitServiceServer
-	usecase *usecase.InitUseCase
+	usecase *user_usecase.InitUseCase // Используем правильный пакет
 }
 
-func NewGetUserHandler(uc *usecase.InitUseCase) *GetUserHandler {
+func NewGetUserHandler(uc *user_usecase.InitUseCase) *GetUserHandler {
 	return &GetUserHandler{
 		usecase: uc,
 	}
