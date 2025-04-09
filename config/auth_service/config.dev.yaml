@@ -2,3 +2,9 @@ jwt:
   secret: "your-secret-key"
   access_token_ttl: 15m
   refresh_token_ttl: 24h
+
+app:
+  env: dev
+  port: "50056"
+  log_level: debug
+  service_name: "auth_service"

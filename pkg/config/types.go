@@ -18,4 +18,12 @@ type ServiceConfig struct {
 		AccessTokenTtl  string `mapstructure:"access_token_ttl"`
 		RefreshTokenTtl string `mapstructure:"refresh_token_ttl"`
 	} `mapstructure:"jwt"`
+
+	AuthService struct {
+		URL string `mapstructure:"url"`
+	} `mapstructure:"auth_service"`
+
+	DatabaseService struct {
+		URL string `mapstructure:"url"` // URL для подключения к database_service
+	} `mapstructure:"database_service"`
 }

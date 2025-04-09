@@ -1,0 +1,5 @@
+app:
+    env: dev
+    port: "50056"
+    log_level: debug
+    service_name: "gateway"
