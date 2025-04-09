@@ -32,6 +32,7 @@ message GetUserResponse {
   string hashedRt = 4;
   string password = 5;
   string hashedAt = 6;
+  string message = 7;
 }
 
 message AddUserRequest {
@@ -39,6 +40,7 @@ message AddUserRequest {
   string password = 2;
   string hashedRt = 3;
   string accessRt = 4;
+  string email = 5;
 }
 
 message AddUserResponse {

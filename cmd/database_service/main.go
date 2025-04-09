@@ -3,8 +3,8 @@ package main
 import (
 	"net"
 
-	"github.com/vwency/microservices_golang/internal/database/delivery/gprc/handler"
-	"github.com/vwency/microservices_golang/internal/database/repository" // Исправленный импорт
+	handler_user_service "github.com/vwency/microservices_golang/internal/database/delivery/gprc/handler/user_service"
+	"github.com/vwency/microservices_golang/internal/database/repository"
 	"github.com/vwency/microservices_golang/internal/database/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
@@ -32,13 +32,13 @@ func main() {
 	}
 
 	// Initialize repository
-	repo := repository.NewRepository(db) // Создаем репозиторий через Repository, а не напрямую через user_repository
+	repo := repository.NewRepository(db)
 
 	// Initialize UseCase
-	uc := usecase.NewInitUseCase(repo.UserRepo) // Передаем репозиторий в usecase
+	uc := usecase.NewInitUseCase(repo.UserRepo)
 
-	// Initialize handler
-	handler := handler.NewHandler(uc)
+	// Initialize handler (Server)
+	server := handler_user_service.NewServer(uc)
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":"+Cfg.App.Port)
@@ -48,8 +48,8 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	// Register the service
-	pb.RegisterDatabaseInitServiceServer(grpcServer, handler)
+	// Register the full server that already contains all handlers
+	pb.RegisterDatabaseInitServiceServer(grpcServer, server)
 
 	logger.Info("Starting database init service on port " + Cfg.App.Port)
 
