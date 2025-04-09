@@ -2,12 +2,7 @@ package user
 
 import (
 	"github.com/vwency/microservices_golang/internal/database/models"
-	"gorm.io/gorm"
 )
-
-type userRepository struct {
-	db *gorm.DB
-}
 
 func (r *userRepository) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
 	var user models.User
@@ -24,7 +19,6 @@ func (r *userRepository) AddUser(user *models.User) error {
 	return nil
 }
 
-// UpdateUserTokens обновляет токены пользователя (refresh_token и access_token)
 func (r *userRepository) UpdateUserTokens(username, hashedRt, hashedAt string) error {
 	if err := r.db.Model(&models.User{}).Where("username = ?", username).
 		Update("refresh_token", hashedRt).

@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/vwency/microservices_golang/internal/database/models"
 	"github.com/vwency/microservices_golang/internal/database/repository/user"
-	"github.com/vwency/microservices_golang/pkg/config"
+	"gorm.io/gorm"
 )
 
 type UserRepository interface {
@@ -13,6 +15,12 @@ type UserRepository interface {
 	UpdateUserTokens(username, hashedRt, hashedAt string) error
 }
 
-func NewUserRepository(cfg config.ServiceConfig) (UserRepository, error) {
-	return user.NewUserRepository(cfg)
+func NewUserRepository(db *gorm.DB) UserRepository {
+	repo := user.NewUserRepository(db)
+
+	if err := repo.RunMigrations(); err != nil {
+		panic(fmt.Sprintf("failed to run migrations: %v", err))
+	}
+
+	return repo
 }

@@ -5,9 +5,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// RunMigrations выполняет миграции для пользователей, создавая таблицы в базе данных
 func RunMigrations(db *gorm.DB) error {
-	// Создаем таблицу пользователей, если она еще не существует
+	if db.Migrator().HasTable(&models.User{}) {
+		// Удаляем таблицу, если она существует
+		if err := db.Migrator().DropTable(&models.User{}); err != nil {
+			return err
+		}
+	}
 	if err := db.AutoMigrate(&models.User{}); err != nil {
 		return err
 	}
