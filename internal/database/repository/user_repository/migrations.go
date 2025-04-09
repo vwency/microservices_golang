@@ -6,5 +6,13 @@ import (
 )
 
 func RunUserMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&models.User{})
+	if err := db.Migrator().DropTable(&models.User{}); err != nil {
+		return err
+	}
+
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		return err
+	}
+
+	return nil
 }

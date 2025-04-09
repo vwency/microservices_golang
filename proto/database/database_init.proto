@@ -30,14 +30,14 @@ message GetUserResponse {
   string username = 2;
   string email = 3;
   string hashedRt = 4;
-  string password = 5;
+  string hashedPassword = 5;
   string hashedAt = 6;
   string message = 7;
 }
 
 message AddUserRequest {
   string username = 1;
-  string password = 2;
+  string hashedPassword = 2;
   string hashedRt = 3;
   string accessRt = 4;
   string email = 5;
@@ -58,4 +58,3 @@ message UpdateUserResponse {
   bool success = 1;
   string message = 2;
 }
-

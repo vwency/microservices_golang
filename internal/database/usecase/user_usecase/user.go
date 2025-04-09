@@ -59,11 +59,11 @@ func (uc *UserUsecase) CreateUser(params CreateUserParams) error {
 	}
 
 	user := &models.User{
-		Username: params.Username,
-		Password: params.Password,
-		HashedRt: params.HashedRt,
-		HashedAt: params.HashedAt,
-		Email:    &params.Email,
+		Username:       params.Username,
+		HashedPassword: params.HashedPassword,
+		HashedRt:       params.HashedRt,
+		HashedAt:       params.HashedAt,
+		Email:          &params.Email,
 	}
 
 	if err := uc.repo.AddUser(user); err != nil {

@@ -56,12 +56,12 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 	}
 
 	return &pb.GetUserResponse{
-		Found:    true,
-		Username: user.Username,
-		Email:    email,
-		HashedRt: user.HashedRt,
-		Password: user.Password,
-		HashedAt: user.HashedAt,
-		Message:  "User found",
+		Found:          true,
+		Username:       user.Username,
+		Email:          email,
+		HashedRt:       user.HashedRt,
+		HashedPassword: user.HashedPassword,
+		HashedAt:       user.HashedAt,
+		Message:        "User found",
 	}, nil
 }
