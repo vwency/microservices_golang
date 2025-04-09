@@ -6,6 +6,9 @@ option go_package = "github.com/vwency/microservices_golang/proto/database_init"
 
 service DatabaseInitService {
   rpc InitDatabase (InitRequest) returns (InitResponse);
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc AddUser (AddUserRequest) returns (AddUserResponse);
+  rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
 }
 
 message InitRequest {
@@ -16,3 +19,41 @@ message InitResponse {
   bool success = 1;
   string message = 2;
 }
+
+message GetUserRequest {
+  string username = 1;
+  string email = 2;
+}
+
+message GetUserResponse {
+  bool found = 1;
+  string username = 2;
+  string email = 3;
+  string hashedRt = 4;
+  string password = 5;
+  string hashedAt = 6;
+}
+
+message AddUserRequest {
+  string username = 1;
+  string password = 2;
+  string hashedRt = 3;
+  string accessRt = 4;
+}
+
+message AddUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UpdateUserRequest {
+  string username = 1;
+  string hashedRt = 2;
+  string accessRt = 3;
+}
+
+message UpdateUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+

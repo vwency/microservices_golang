@@ -1,43 +1,43 @@
 package usecase
 
 import (
-	"fmt"
-
+	"github.com/vwency/microservices_golang/internal/database/models"
 	"github.com/vwency/microservices_golang/internal/database/repository"
-	"github.com/vwency/microservices_golang/pkg/logger"
 )
+
+type InitUseCase struct {
+	repo repository.UserRepository
+}
+
+func NewInitUseCase(repo repository.UserRepository) *InitUseCase {
+	return &InitUseCase{repo: repo}
+}
+
+func (uc *InitUseCase) InitDatabase() error {
+	return uc.repo.RunMigrations()
+}
+
+func (uc *InitUseCase) GetUser(username, email string) (*models.User, error) {
+	return uc.repo.GetUserByUsernameOrEmail(username, email)
+}
+
+func (uc *InitUseCase) AddUser(username, password, hashedRt, accessRt string) error {
+	user := &models.User{
+		Username: username,
+		Password: password,
+		HashedRt: hashedRt,
+		HashedAt: accessRt,
+	}
+	return uc.repo.AddUser(user)
+}
+
+func (uc *InitUseCase) UpdateUserTokens(username, hashedRt, accessRt string) error {
+	return uc.repo.UpdateUserTokens(username, hashedRt, accessRt)
+}
 
 type DatabaseInit interface {
 	InitDatabase() error
-}
-
-type databaseInitUsecase struct {
-	repo repository.DatabaseInitRepository
-}
-
-func NewUsecase(repo repository.DatabaseInitRepository) DatabaseInit {
-	return &databaseInitUsecase{
-		repo: repo,
-	}
-}
-
-func (uc *databaseInitUsecase) InitDatabase() error {
-	logger.Info("Starting database initialization")
-
-	if uc == nil {
-		return fmt.Errorf("usecase is nil")
-	}
-	if uc.repo == nil {
-		return fmt.Errorf("repository is not initialized")
-	}
-
-	logger.Info("Attempting to run migrations")
-	err := uc.repo.RunMigrations()
-	if err != nil {
-		logger.Error("Migration failed: %v", err)
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	logger.Info("Database initialized successfully")
-	return nil
+	GetUser(username, email string) (*models.User, error)
+	AddUser(username, password, hashedRt, accessRt string) error
+	UpdateUserTokens(username, hashedRt, accessRt string) error
 }

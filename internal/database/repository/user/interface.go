@@ -1,9 +1,7 @@
-package repository
+package user
 
 import (
 	"github.com/vwency/microservices_golang/internal/database/models"
-	"github.com/vwency/microservices_golang/internal/database/repository/user"
-	"github.com/vwency/microservices_golang/pkg/config"
 )
 
 type UserRepository interface {
@@ -11,8 +9,4 @@ type UserRepository interface {
 	GetUserByUsernameOrEmail(username, email string) (*models.User, error)
 	AddUser(user *models.User) error
 	UpdateUserTokens(username, hashedRt, hashedAt string) error
-}
-
-func NewUserRepository(cfg config.ServiceConfig) (UserRepository, error) {
-	return user.NewUserRepository(cfg)
 }

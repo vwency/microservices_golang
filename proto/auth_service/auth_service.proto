@@ -36,6 +36,15 @@ message ValidateResponse {
   int64 expires_at = 4;
 }
 
+message LogoutRequest {
+  string username = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
   

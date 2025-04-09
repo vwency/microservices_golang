@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/vwency/microservices_golang/internal/database/handler"
-	"github.com/vwency/microservices_golang/internal/database/repository"
+	repository "github.com/vwency/microservices_golang/internal/database/repository/user"
 	"github.com/vwency/microservices_golang/internal/database/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/logger"
@@ -21,12 +21,12 @@ func main() {
 
 	logger.Init(Cfg.App.LogLevel)
 
-	repo, err := repository.NewRepository(Cfg)
+	repo, err := repository.NewUserRepository(Cfg)
 	if err != nil {
 		logger.Fatal("failed to initialize repository: %v", err)
 	}
 
-	uc := usecase.NewUsecase(repo)
+	uc := usecase.NewInitUseCase(repo)
 
 	handler := handler.NewHandler(uc)
 
