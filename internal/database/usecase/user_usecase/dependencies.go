@@ -5,11 +5,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Dependencies содержит все зависимости для usecase
 type Dependencies struct {
-	UserRepo user_repository.UserRepository // Используем интерфейс из user_repository
+	UserRepo user_repository.UserRepository
 	Logger   *zap.Logger
-	// Другие зависимости при необходимости
 }
-
-// New создает новый экземпляр UserUsecase с внедренными зависимостями

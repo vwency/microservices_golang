@@ -56,11 +56,26 @@ message GenerateTokensResponse {
   int64 expires_at = 3;
 }
 
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+}
+
+message RegisterResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_at = 3;
+}
+
+
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Validate(ValidateRequest) returns (ValidateResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
-
   rpc GenerateTokens(GenerateTokensRequest) returns (GenerateTokensResponse);
+
+  // 👇 Добавлен новый метод регистрации
+  rpc Register(RegisterRequest) returns (RegisterResponse);
 }
