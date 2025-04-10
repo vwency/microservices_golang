@@ -10,13 +10,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetUserHandler обработчик для получения пользователя
 type GetUserHandler struct {
 	uc     *user_usecase.UserUsecase
 	logger *zap.Logger
 }
 
-// NewGetUserHandler создает новый экземпляр обработчика
 func NewGetUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *GetUserHandler {
 	return &GetUserHandler{
 		uc:     uc,
@@ -24,14 +22,17 @@ func NewGetUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *GetUse
 	}
 }
 
-// GetUser реализует gRPC метод
 func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	if req.GetUsername() == "" && req.GetEmail() == "" {
 		h.logger.Warn("empty request parameters")
 		return nil, status.Error(codes.InvalidArgument, "username or email must be provided")
 	}
+	params := user_usecase.UserParams{
+		Username: req.GetUsername(),
+		Email:    req.GetEmail(),
+	}
 
-	user, err := h.uc.GetUser(req.GetUsername(), req.GetEmail())
+	user, err := h.uc.GetUser(params)
 	if err != nil {
 		h.logger.Error("failed to get user",
 			zap.String("username", req.GetUsername()),

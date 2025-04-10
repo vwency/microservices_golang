@@ -25,7 +25,6 @@ func NewUpdateUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *Upd
 }
 
 func (h *UpdateUserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
-	// Валидация входных параметров
 	if req.GetUsername() == "" {
 		h.logger.Warn("empty username in request")
 		return nil, status.Error(codes.InvalidArgument, "username is required")
@@ -36,8 +35,14 @@ func (h *UpdateUserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 		return nil, status.Error(codes.InvalidArgument, "token fields cannot be empty")
 	}
 
-	// Обновление токенов
-	err := h.uc.UpdateTokens(req.GetUsername(), req.GetHashedRt(), req.GetAccessRt())
+	updateParams := user_usecase.UpdateTokensParams{
+		Username: req.GetUsername(),
+		HashedRt: req.GetHashedRt(),
+		HashedAt: req.GetAccessRt(),
+	}
+
+	// Pass the struct instead of individual arguments
+	err := h.uc.UpdateTokens(updateParams)
 	if err != nil {
 		h.logger.Error("failed to update user tokens",
 			zap.String("username", req.GetUsername()),
