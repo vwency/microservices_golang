@@ -6,10 +6,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/vwency/microservices_golang/internal/auth_service"
+	auth_service_handler "github.com/vwency/microservices_golang/internal/auth_service/handler"
+	auth_service_usecase "github.com/vwency/microservices_golang/internal/auth_service/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/jwt"
-	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -27,6 +27,7 @@ func main() {
 	}
 	defer zapLogger.Sync()
 
+	// Инициализация JWT менеджера
 	accessTokenTTL, err := time.ParseDuration(Cfg.Jwt.AccessTokenTtl)
 	if err != nil {
 		log.Fatalf("invalid access_token_ttl value: %v", err)
@@ -43,6 +44,7 @@ func main() {
 		refreshTokenTTL,
 	)
 
+	// Подключение к сервису базы данных
 	dbConn, err := grpc.Dial(Cfg.DatabaseService.URL, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect to database_service: %v", err)
@@ -51,8 +53,11 @@ func main() {
 
 	dbClient := databasev1.NewDatabaseInitServiceClient(dbConn)
 
-	authSvc := auth_service.NewAuthService(jwtManager, zapLogger, dbClient)
+	// Создание usecase и handler
+	authUsecase := auth_service_usecase.NewAuthUsecase(dbClient, jwtManager, zapLogger)
+	authHandler := auth_service_handler.NewServer(authUsecase, zapLogger)
 
+	// Запуск gRPC сервера
 	addr := fmt.Sprintf(":%s", Cfg.App.Port)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -60,9 +65,12 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	authv1.RegisterAuthServiceServer(grpcServer, authSvc)
+	authHandler.RegisterService(grpcServer) // Используем новый метод RegisterService
 
-	zapLogger.Info("gRPC server for auth_service started", zap.String("port", Cfg.App.Port))
+	zapLogger.Info("gRPC server for auth_service started",
+		zap.String("port", Cfg.App.Port),
+		zap.String("env", string(env)),
+	)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
