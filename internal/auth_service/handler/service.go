@@ -14,17 +14,25 @@ type Server struct {
 	loginHandler    *LoginHandler
 	registerHandler *RegisterHandler
 	validateHandler *ValidateHandler
+	refreshHandler  *RefreshHandler
+	logoutHandler   *LogoutHandler
 }
 
-func NewServer(uc *auth_service_usecase.AuthUsecase, logger *zap.Logger) *Server {
+func NewServer(
+	authUsecase *auth_service_usecase.AuthUsecase,
+	refreshUsecase *auth_service_usecase.RefreshUsecase,
+	logoutUsecase *auth_service_usecase.LogoutUsecase,
+	logger *zap.Logger,
+) *Server {
 	return &Server{
-		loginHandler:    NewLoginHandler(uc, logger),
-		registerHandler: NewRegisterHandler(uc, logger),
-		validateHandler: NewValidateHandler(uc, logger),
+		loginHandler:    NewLoginHandler(authUsecase, logger),
+		registerHandler: NewRegisterHandler(authUsecase, logger),
+		validateHandler: NewValidateHandler(authUsecase, logger),
+		refreshHandler:  NewRefreshHandler(refreshUsecase, logger),
+		logoutHandler:   NewLogoutHandler(logoutUsecase, logger),
 	}
 }
 
-// RegisterService переименован, чтобы избежать конфликта с методом Register
 func (s *Server) RegisterService(grpcServer *grpc.Server) {
 	authv1.RegisterAuthServiceServer(grpcServer, s)
 }
@@ -39,4 +47,12 @@ func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*au
 
 func (s *Server) Validate(ctx context.Context, req *authv1.ValidateRequest) (*authv1.ValidateResponse, error) {
 	return s.validateHandler.Validate(ctx, req)
+}
+
+func (s *Server) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
+	return s.refreshHandler.Refresh(ctx, req)
+}
+
+func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
+	return s.logoutHandler.Logout(ctx, req)
 }

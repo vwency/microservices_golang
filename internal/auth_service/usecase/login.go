@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"errors"
 	"time"
 
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
@@ -32,7 +31,6 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrUserNotFound
 	}
 
-	// Check password
 	storedPassword, err := base64.StdEncoding.DecodeString(getUserResp.HashedPassword)
 	if err != nil {
 		uc.logger.Error("Failed to decode stored password", zap.String("username", username), zap.Error(err))
@@ -46,7 +44,6 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate tokens
 	roles := []string{"user"}
 	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, roles)
 	if err != nil {
@@ -60,7 +57,6 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, err
 	}
 
-	// Update refresh token in the database
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 		Username: username,
 		HashedRt: refreshToken,
@@ -70,16 +66,9 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, err
 	}
 
-	// Return the generated tokens
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 	}, nil
 }
-
-// Business logic errors
-var (
-	ErrUserNotFound       = errors.New("user not found")
-	ErrInvalidCredentials = errors.New("invalid credentials")
-)

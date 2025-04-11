@@ -10,22 +10,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type LoginHandler struct { // Изменено имя структуры на LoginHandler
+type LoginHandler struct {
 	usecase *auth_service_usecase.AuthUsecase
 	logger  *zap.Logger
 }
 
-func NewLoginHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *LoginHandler { // Изменено имя функции
+func NewLoginHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *LoginHandler {
 	return &LoginHandler{usecase: usecase, logger: logger}
 }
 
-func (h *LoginHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) { // Имя метода осталось Login
-	// Валидация запроса
+func (h *LoginHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	if req.Username == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "username and password are required")
 	}
 
-	// Вызов бизнес-логики
 	tokens, err := h.usecase.Login(ctx, req.Username, req.Password)
 	if err != nil {
 		h.logger.Error("Login failed", zap.Error(err))

@@ -27,7 +27,6 @@ func main() {
 	}
 	defer zapLogger.Sync()
 
-	// Инициализация JWT менеджера
 	accessTokenTTL, err := time.ParseDuration(Cfg.Jwt.AccessTokenTtl)
 	if err != nil {
 		log.Fatalf("invalid access_token_ttl value: %v", err)
@@ -44,7 +43,6 @@ func main() {
 		refreshTokenTTL,
 	)
 
-	// Подключение к сервису базы данных
 	dbConn, err := grpc.Dial(Cfg.DatabaseService.URL, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect to database_service: %v", err)
@@ -53,11 +51,13 @@ func main() {
 
 	dbClient := databasev1.NewDatabaseInitServiceClient(dbConn)
 
-	// Создание usecase и handler
 	authUsecase := auth_service_usecase.NewAuthUsecase(dbClient, jwtManager, zapLogger)
-	authHandler := auth_service_handler.NewServer(authUsecase, zapLogger)
 
-	// Запуск gRPC сервера
+	refreshUsecase := auth_service_usecase.NewRefreshUsecase(dbClient, jwtManager, zapLogger)
+	logoutUsecase := auth_service_usecase.NewLogoutUsecase(dbClient, jwtManager, zapLogger)
+
+	authHandler := auth_service_handler.NewServer(authUsecase, refreshUsecase, logoutUsecase, zapLogger)
+
 	addr := fmt.Sprintf(":%s", Cfg.App.Port)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -65,7 +65,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	authHandler.RegisterService(grpcServer) // Используем новый метод RegisterService
+	authHandler.RegisterService(grpcServer)
 
 	zapLogger.Info("gRPC server for auth_service started",
 		zap.String("port", Cfg.App.Port),

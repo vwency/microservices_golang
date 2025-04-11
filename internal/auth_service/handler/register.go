@@ -15,12 +15,11 @@ type RegisterHandler struct {
 	logger  *zap.Logger
 }
 
-func NewRegisterHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *RegisterHandler { // Изменено имя функции
+func NewRegisterHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *RegisterHandler {
 	return &RegisterHandler{usecase: usecase, logger: logger}
 }
 
-func (h *RegisterHandler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) { // Имя метода осталось Register
-	// Валидация запроса
+func (h *RegisterHandler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	if req.Username == "" || req.Password == "" || req.Email == "" {
 		return nil, status.Error(codes.InvalidArgument, "username, password, and email are required")
 	}

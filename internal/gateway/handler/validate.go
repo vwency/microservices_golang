@@ -23,19 +23,16 @@ func ValidateHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accessToken string
 
-		// Сначала пробуем достать токен из тела запроса
 		var validateReq ValidateRequest
 		if err := json.NewDecoder(r.Body).Decode(&validateReq); err == nil && validateReq.AccessToken != "" {
 			accessToken = validateReq.AccessToken
 		} else {
-			// Если в теле нет токена — пробуем взять из заголовка Authorization
 			authHeader := r.Header.Get("Authorization")
 			if strings.HasPrefix(authHeader, "Bearer ") {
 				accessToken = strings.TrimPrefix(authHeader, "Bearer ")
 			}
 		}
 
-		// Если токен так и не найден — 400 Bad Request
 		if accessToken == "" {
 			http.Error(w, "access token not provided", http.StatusBadRequest)
 			return

@@ -25,8 +25,8 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 	addUserReq := &databasev1.AddUserRequest{
 		Username:       username,
 		HashedPassword: encodedPassword,
-		HashedRt:       "qweqwe",       // Placeholder for refresh token (you'll need to handle it properly)
-		AccessRt:       "access-token", // Placeholder for access token
+		HashedRt:       "qweqwe",
+		AccessRt:       "access-token",
 		Email:          email,
 	}
 

@@ -20,14 +20,12 @@ func NewValidateHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.L
 }
 
 func (h *ValidateHandler) Validate(ctx context.Context, req *authv1.ValidateRequest) (*authv1.ValidateResponse, error) {
-	// Вызов бизнес-логики для валидации токена
 	result, err := h.usecase.ValidateAccessToken(req.AccessToken)
 	if err != nil {
 		h.logger.Error("Validation failed", zap.Error(err))
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
-	// Возвращаем результат валидации
 	return &authv1.ValidateResponse{
 		Valid:     result.Valid,
 		UserId:    result.UserID,
