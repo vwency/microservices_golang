@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/vwency/microservices_golang/internal/gateway/service"
 )
@@ -20,13 +21,27 @@ type ValidateResponse struct {
 
 func ValidateHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var accessToken string
+
+		// Сначала пробуем достать токен из тела запроса
 		var validateReq ValidateRequest
-		if err := json.NewDecoder(r.Body).Decode(&validateReq); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if err := json.NewDecoder(r.Body).Decode(&validateReq); err == nil && validateReq.AccessToken != "" {
+			accessToken = validateReq.AccessToken
+		} else {
+			// Если в теле нет токена — пробуем взять из заголовка Authorization
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				accessToken = strings.TrimPrefix(authHeader, "Bearer ")
+			}
+		}
+
+		// Если токен так и не найден — 400 Bad Request
+		if accessToken == "" {
+			http.Error(w, "access token not provided", http.StatusBadRequest)
 			return
 		}
 
-		resp, err := authService.Validate(r.Context(), validateReq.AccessToken)
+		resp, err := authService.Validate(r.Context(), accessToken)
 		if err != nil {
 			http.Error(w, "Failed to validate token", http.StatusUnauthorized)
 			return
