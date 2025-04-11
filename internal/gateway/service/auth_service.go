@@ -34,16 +34,27 @@ func NewAuthServiceClient(authAddress, dbAddress string) (*AuthServiceClient, er
 	}, nil
 }
 
+func (c *AuthServiceClient) Register(ctx context.Context, username, password, email string) (*auth_service.RegisterResponse, error) {
+	req := &auth_service.RegisterRequest{
+		Username: username,
+		Password: password,
+		Email:    email,
+	}
+	return c.Client.Register(ctx, req)
+}
+
+func (c *AuthServiceClient) Login(ctx context.Context, username, password string) (*auth_service.LoginResponse, error) {
+	req := &auth_service.LoginRequest{
+		Username: username,
+		Password: password,
+	}
+	return c.Client.Login(ctx, req)
+}
+
 func (c *AuthServiceClient) GetUser(ctx context.Context, username, email string) (*database_init.GetUserResponse, error) {
 	req := &database_init.GetUserRequest{
 		Username: username,
 		Email:    email,
 	}
-
-	resp, err := c.DBClient.GetUser(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user from database: %v", err)
-	}
-
-	return resp, nil
+	return c.DBClient.GetUser(ctx, req)
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/vwency/microservices_golang/internal/gateway/service"
@@ -12,6 +11,12 @@ type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+}
+
+type RegisterResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    int64  `json:"expires_at"`
 }
 
 func RegisterHandler(authService *service.AuthServiceClient) http.HandlerFunc {
@@ -24,7 +29,7 @@ func RegisterHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 
 		resp, err := authService.GetUser(r.Context(), registerReq.Username, registerReq.Email)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to check user existence: %v", err), http.StatusInternalServerError)
+			http.Error(w, "Failed to check user existence", http.StatusInternalServerError)
 			return
 		}
 
@@ -33,10 +38,20 @@ func RegisterHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 			return
 		}
 
+		authResp, err := authService.Register(r.Context(), registerReq.Username, registerReq.Password, registerReq.Email)
+		if err != nil {
+			http.Error(w, "Failed to register user", http.StatusInternalServerError)
+			return
+		}
+
+		response := RegisterResponse{
+			AccessToken:  authResp.AccessToken,
+			RefreshToken: authResp.RefreshToken,
+			ExpiresAt:    authResp.ExpiresAt,
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "User successfully registered",
-		})
+		json.NewEncoder(w).Encode(response)
 	}
 }

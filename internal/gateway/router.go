@@ -8,6 +8,9 @@ import (
 
 func InitializeRouter(authService *service.AuthServiceClient) *mux.Router {
 	r := mux.NewRouter()
+
 	r.HandleFunc("/register", handler.RegisterHandler(authService)).Methods("POST")
+	r.HandleFunc("/login", handler.LoginHandler(authService)).Methods("POST")
+
 	return r
 }
