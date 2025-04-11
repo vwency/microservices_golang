@@ -9,7 +9,7 @@ import (
 
 	handler_user_service "github.com/vwency/microservices_golang/internal/database/delivery/grpc/handler/user_service"
 	"github.com/vwency/microservices_golang/internal/database/repository"
-	"github.com/vwency/microservices_golang/internal/database/repository/user_repository" // Import your user_repository package
+	"github.com/vwency/microservices_golang/internal/database/repository/user_repository"
 	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/database"

@@ -76,6 +76,5 @@ service AuthService {
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc GenerateTokens(GenerateTokensRequest) returns (GenerateTokensResponse);
 
-  // 👇 Добавлен новый метод регистрации
   rpc Register(RegisterRequest) returns (RegisterResponse);
 }

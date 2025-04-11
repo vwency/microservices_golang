@@ -22,7 +22,6 @@ func JWTAuthInterceptor(jwtManager *JWTManager) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		// Пропускаем аутентификацию для методов AuthService
 		if strings.Contains(info.FullMethod, "AuthService") {
 			return handler(ctx, req)
 		}

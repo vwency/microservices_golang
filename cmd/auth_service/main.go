@@ -21,7 +21,6 @@ func main() {
 	env := config.DetectEnv()
 	config.Init(env, "auth_service", &Cfg)
 
-	// Просто создаём zap логгер напрямую
 	zapLogger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("failed to init zap logger: %v", err)
