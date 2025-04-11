@@ -2,6 +2,7 @@ package auth_service
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
@@ -25,9 +26,11 @@ func (s *AuthService) Register(ctx context.Context, req *authv1.RegisterRequest)
 		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", fmt.Errorf("hashing error"))
 	}
 
+	encodedPassword := base64.StdEncoding.EncodeToString(hashedPassword)
+
 	addUserReq := &databasev1.AddUserRequest{
 		Username:       req.Username,
-		HashedPassword: string(hashedPassword),
+		HashedPassword: encodedPassword,
 		HashedRt:       "qweqwe",
 		AccessRt:       "access-token",
 		Email:          req.Email,

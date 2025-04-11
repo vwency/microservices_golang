@@ -24,6 +24,6 @@ type ServiceConfig struct {
 	} `mapstructure:"auth_service"`
 
 	DatabaseService struct {
-		URL string `mapstructure:"url"` // URL для подключения к database_service
+		URL string `mapstructure:"url"`
 	} `mapstructure:"database_service"`
 }

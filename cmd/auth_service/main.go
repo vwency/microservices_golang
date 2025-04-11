@@ -21,11 +21,12 @@ func main() {
 	env := config.DetectEnv()
 	config.Init(env, "auth_service", &Cfg)
 
-	logger, err := zap.NewProduction()
+	// Просто создаём zap логгер напрямую
+	zapLogger, err := zap.NewProduction()
 	if err != nil {
-		log.Fatalf("Failed to initialize logger: %v", err)
+		log.Fatalf("failed to init zap logger: %v", err)
 	}
-	defer logger.Sync()
+	defer zapLogger.Sync()
 
 	accessTokenTTL, err := time.ParseDuration(Cfg.Jwt.AccessTokenTtl)
 	if err != nil {
@@ -42,15 +43,16 @@ func main() {
 		accessTokenTTL,
 		refreshTokenTTL,
 	)
-	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+
+	dbConn, err := grpc.Dial(Cfg.DatabaseService.URL, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect to database_service: %v", err)
 	}
-	defer conn.Close()
+	defer dbConn.Close()
 
-	dbClient := databasev1.NewDatabaseInitServiceClient(conn)
+	dbClient := databasev1.NewDatabaseInitServiceClient(dbConn)
 
-	authSvc := auth_service.NewAuthService(jwtManager, logger, dbClient)
+	authSvc := auth_service.NewAuthService(jwtManager, zapLogger, dbClient)
 
 	addr := fmt.Sprintf(":%s", Cfg.App.Port)
 	lis, err := net.Listen("tcp", addr)
@@ -61,7 +63,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	authv1.RegisterAuthServiceServer(grpcServer, authSvc)
 
-	logger.Info(fmt.Sprintf("gRPC server for auth_service started on port %s", Cfg.App.Port))
+	zapLogger.Info("gRPC server for auth_service started", zap.String("port", Cfg.App.Port))
 
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

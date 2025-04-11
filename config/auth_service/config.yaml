@@ -8,3 +8,10 @@ app:
   port: "50056"
   log_level: debug
   service_name: "auth_service"
+
+
+auth_service:
+  url: "localhost:50056"
+
+database_service:
+  url: "localhost:50052"
