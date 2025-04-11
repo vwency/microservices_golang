@@ -41,7 +41,6 @@ func (c *AuthServiceClient) GetUser(ctx context.Context, username, email string)
 		Email:    email,
 	}
 
-	// Вызываем gRPC метод GetUser из database_service
 	resp, err := c.DBClient.GetUser(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user from database: %v", err)

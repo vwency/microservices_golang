@@ -33,9 +33,6 @@ func RegisterHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 			return
 		}
 
-		// Если пользователя нет, выполняем регистрацию
-		// Для примера, мы просто возвращаем успешный ответ
-		// В реальной жизни, добавляем пользователя в базу данных и выполняем другие операции
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{

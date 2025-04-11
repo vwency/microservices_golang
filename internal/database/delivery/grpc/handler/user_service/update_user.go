@@ -41,7 +41,6 @@ func (h *UpdateUserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 		HashedAt: req.GetAccessRt(),
 	}
 
-	// Pass the struct instead of individual arguments
 	err := h.uc.UpdateTokens(updateParams)
 	if err != nil {
 		h.logger.Error("failed to update user tokens",

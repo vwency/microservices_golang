@@ -2,13 +2,10 @@ package user_usecase
 
 import "errors"
 
-// UserParams contains common user data
 type UserParams struct {
 	Username string
 	Email    string
 }
-
-// CreateUserParams contains parameters for creating a user
 type CreateUserParams struct {
 	UserParams
 	HashedPassword string
@@ -16,14 +13,12 @@ type CreateUserParams struct {
 	HashedAt       string
 }
 
-// UpdateTokensParams contains parameters for updating user tokens
 type UpdateTokensParams struct {
 	Username string
 	HashedRt string
 	HashedAt string
 }
 
-// Validate method for CreateUserParams
 func (p *CreateUserParams) Validate() error {
 	if p.Username == "" {
 		return errors.New("username cannot be empty")
@@ -37,7 +32,6 @@ func (p *CreateUserParams) Validate() error {
 	return nil
 }
 
-// Validate method for UpdateTokensParams
 func (p *UpdateTokensParams) Validate() error {
 	if p.Username == "" {
 		return errors.New("username cannot be empty")
