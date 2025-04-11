@@ -51,6 +51,27 @@ func (c *AuthServiceClient) Login(ctx context.Context, username, password string
 	return c.Client.Login(ctx, req)
 }
 
+func (c *AuthServiceClient) Logout(ctx context.Context, username string) (*auth_service.LogoutResponse, error) {
+	req := &auth_service.LogoutRequest{
+		Username: username,
+	}
+	return c.Client.Logout(ctx, req)
+}
+
+func (c *AuthServiceClient) Validate(ctx context.Context, token string) (*auth_service.ValidateResponse, error) {
+	req := &auth_service.ValidateRequest{
+		AccessToken: token,
+	}
+	return c.Client.Validate(ctx, req)
+}
+
+func (c *AuthServiceClient) Refresh(ctx context.Context, refreshToken string) (*auth_service.RefreshResponse, error) {
+	req := &auth_service.RefreshRequest{
+		RefreshToken: refreshToken,
+	}
+	return c.Client.Refresh(ctx, req)
+}
+
 func (c *AuthServiceClient) GetUser(ctx context.Context, username, email string) (*database_init.GetUserResponse, error) {
 	req := &database_init.GetUserRequest{
 		Username: username,
