@@ -1,11 +1,11 @@
 app:
     env: dev
-    port: "50056"
+    port: "50058"
     log_level: debug
     service_name: "gateway"
 
 auth_service:
-  url: "localhost:50051"
+  url: "localhost:50056"
 
 database_service:
   url: "localhost:50052" 

@@ -9,6 +9,12 @@ tasks:
     cmds:
       - go run ./cmd/hello_service
 
+tasks:
+  run-auth:
+    desc: Run hello_service
+    cmds:
+    - go run ./cmd/auth_service
+
   run-database:
     desc: Run hello_service
     cmds:

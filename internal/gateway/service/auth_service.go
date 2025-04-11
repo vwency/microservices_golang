@@ -15,7 +15,6 @@ type AuthServiceClient struct {
 }
 
 func NewAuthServiceClient(authAddress, dbAddress string) (*AuthServiceClient, error) {
-	// Соединение с AuthService
 	authConn, err := grpc.Dial(authAddress, grpc.WithInsecure())
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to auth service: %v", err)

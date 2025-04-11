@@ -21,7 +21,6 @@ func main() {
 	env := config.DetectEnv()
 	config.Init(env, "auth_service", &Cfg)
 
-	// Настройка логгера
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
@@ -43,7 +42,7 @@ func main() {
 		accessTokenTTL,
 		refreshTokenTTL,
 	)
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect to database_service: %v", err)
 	}
