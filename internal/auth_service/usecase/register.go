@@ -22,11 +22,23 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 
 	encodedPassword := base64.StdEncoding.EncodeToString(hashedPassword)
 
+	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, []string{"user"})
+	if err != nil {
+		uc.logger.Error("Failed to generate access token", zap.Error(err))
+		return nil, err
+	}
+
+	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(username, []string{"user"})
+	if err != nil {
+		uc.logger.Error("Failed to generate refresh token", zap.Error(err))
+		return nil, err
+	}
+
 	addUserReq := &databasev1.AddUserRequest{
 		Username:       username,
 		HashedPassword: encodedPassword,
-		HashedRt:       "qweqwe",
-		AccessRt:       "access-token",
+		HashedRt:       refreshToken,
+		AccessRt:       accessToken,
 		Email:          email,
 	}
 
@@ -39,18 +51,6 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 	if !addUserResp.Success {
 		uc.logger.Error("Failed to add user to database", zap.String("message", addUserResp.Message))
 		return nil, fmt.Errorf("failed to add user: %v", addUserResp.Message)
-	}
-
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, []string{"user"})
-	if err != nil {
-		uc.logger.Error("Failed to generate access token", zap.Error(err))
-		return nil, err
-	}
-
-	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(username, []string{"user"})
-	if err != nil {
-		uc.logger.Error("Failed to generate refresh token", zap.Error(err))
-		return nil, err
 	}
 
 	return &authv1.RegisterResponse{
