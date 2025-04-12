@@ -1,1 +1,17 @@
-.
+version: "3"
+services:
+    otel-collector:
+        image: otel/opentelemetry-collector
+        command: [ "--config=/etc/otel-config.yaml" ]
+        volumes:
+          - ./otel-collector-config.yaml:/etc/otel-config.yaml
+        ports:
+          - "4317:4317" # OTLP/gRPC
+        depends_on:
+          - jaeger
+
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+          - "16686:16686" # Web UI
+          - "14250:14250" # Jaeger gRPC порт

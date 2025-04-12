@@ -1,4 +1,3 @@
-// auth_service_handler/refresh_handler.go
 package auth_service_handler
 
 import (

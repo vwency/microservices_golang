@@ -23,14 +23,12 @@ func NewLogoutUsecase(dbClient databasev1.DatabaseInitServiceClient, jwtManager 
 }
 
 func (uc *LogoutUsecase) Logout(ctx context.Context, username string) (bool, error) {
-	// Проверяем существование пользователя
 	_, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
 	if err != nil {
 		uc.logger.Error("Failed to get user", zap.String("username", username), zap.Error(err))
 		return false, err
 	}
 
-	// Обновляем пользователя, очищая refresh token
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 		Username: username,
 		HashedRt: "",

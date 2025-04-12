@@ -26,4 +26,9 @@ type ServiceConfig struct {
 	DatabaseService struct {
 		URL string `mapstructure:"url"`
 	} `mapstructure:"database_service"`
+
+	Tracing struct {
+		Enabled      bool   `mapstructure:"enabled"`
+		OtlpEndpoint string `mapstructure:"otlp_endpoint"`
+	} `mapstructure:"tracing"`
 }
