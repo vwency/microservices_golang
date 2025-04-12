@@ -15,12 +15,12 @@ exporters:
     debug:
         verbosity: detailed
     prometheus:
-        endpoint: "0.0.0.0:8889"
-        namespace: "app_metrics"
+        endpoint: "otel-collector:8889" # Endpoint для Prometheus
+        namespace: app_metrics
         const_labels:
             service: "hello_service"
     otlp:
-        endpoint: "127.0.0.1:4317"
+        endpoint: "otel-collector:4317"
         tls:
             insecure: true
 
