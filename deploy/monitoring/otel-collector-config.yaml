@@ -1,0 +1,40 @@
+receivers:
+    otlp:
+        protocols:
+            grpc:
+                endpoint: "0.0.0.0:4317"
+            http:
+                endpoint: "0.0.0.0:4318"
+
+processors:
+    batch:
+        timeout: 5s
+        send_batch_size: 10000
+
+exporters:
+    debug:
+        verbosity: detailed
+    prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: "app_metrics"
+        const_labels:
+            service: "hello_service"
+    otlp:
+        endpoint: "127.0.0.1:4317"
+        tls:
+            insecure: true
+
+service:
+    pipelines:
+        metrics:
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ debug, prometheus ]
+        traces:
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ debug, otlp ]
+        logs:
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ debug ]

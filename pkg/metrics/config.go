@@ -1,9 +1,11 @@
 package metrics
 
+import "time"
+
 type Config struct {
-	ServiceName   string
-	AgentHost     string
-	AgentPort     string
-	EnableMetrics bool
-	OtlpEndpoint  string
+	ServiceName    string
+	EnableMetrics  bool
+	OtlpEndpoint   string
+	ExportInterval time.Duration
+	ExportTimeout  time.Duration
 }

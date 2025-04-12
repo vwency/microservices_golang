@@ -31,4 +31,11 @@ type ServiceConfig struct {
 		Enabled      bool   `mapstructure:"enabled"`
 		OtlpEndpoint string `mapstructure:"otlp_endpoint"`
 	} `mapstructure:"tracing"`
+
+	Metrics struct {
+		Enabled        bool   `mapstructure:"enabled"`
+		OtlpEndpoint   string `mapstructure:"otlp_endpoint"`
+		ExportInterval string `mapstructure:"export_interval"`
+		ExportTimeout  string `mapstructure:"export_timeout"`
+	} `mapstructure:"metrics"`
 }

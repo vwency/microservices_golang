@@ -1,0 +1,20 @@
+app:
+    env: dev
+    port: "50051"
+    log_level: debug
+    service_name: "hello_service"
+
+jwt:
+    secret: "your-secret-key"
+    access_token_ttl: 15m
+    refresh_token_ttl: 24h
+
+tracing:
+    enabled: true
+    otlp_endpoint: "localhost:4317"
+
+metrics:
+    enabled: true
+    otlp_endpoint: "localhost:4317"
+    export_interval: "10s"
+    export_timeout: "5s"
