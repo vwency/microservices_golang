@@ -21,7 +21,6 @@ func NewTracerProvider(cfg Config) (*sdktrace.TracerProvider, error) {
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(cfg.OtlpEndpoint),
 		otlptracegrpc.WithInsecure(),
-		// otlptracegrpc.WithDialOption(grpc.WithBlock()),
 	)
 	if err != nil {
 		log.Printf("Failed to create OTLP exporter: %v", err)
