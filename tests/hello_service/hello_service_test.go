@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/vwency/microservices_golang/internal/hello_service/handler"
+	handler_hello "github.com/vwency/microservices_golang/internal/hello_service/handler"
 	"github.com/vwency/microservices_golang/proto/hello_service"
 
 	"github.com/stretchr/testify/assert"
@@ -13,11 +13,23 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+type HelloUsecaseMock struct{}
+
+func (m *HelloUsecaseMock) ProcessGreeting(text string) string {
+	if text == "Hello" || text == "hello" || text == "HeLlO" || text == "HELLO" {
+		return "hello"
+	}
+	return text
+}
+
 const bufSize = 1024 * 1024
 
 func newTestServer() *grpc.Server {
 	server := grpc.NewServer()
-	helloHandler := handler.NewHelloHandler()
+	// Create the mock use case
+	usecase := &HelloUsecaseMock{}
+	// Pass the mock use case to the handler constructor
+	helloHandler := handler_hello.NewHelloHandler(usecase)
 	hello_service.RegisterHelloServiceServer(server, helloHandler)
 	return server
 }
