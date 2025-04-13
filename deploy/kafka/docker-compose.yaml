@@ -1,0 +1,46 @@
+services:
+  zookeeper:
+    image: ${IMAGE}
+    container_name: zookeeper
+    env_file:
+      - ./env/zookeeper.env
+      - ./network.env
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    networks:
+      - ${NETWORK_NAME}
+
+  kafka:
+    image: ${IMAGE}
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    env_file:
+      - ./env/kafka.env
+      - ./network.env
+    ports:
+      - "${EXTERNAL_PORT}:${EXTERNAL_PORT}"
+      - "${INTERNAL_PORT}:${INTERNAL_PORT}"
+    networks:
+      - ${NETWORK_NAME}
+
+  kafdrop:
+    image: ${IMAGE}
+    container_name: kafdrop
+    depends_on:
+      - kafka
+    env_file:
+      - ./env/kafdrop.env
+      - ./network.env
+    ports:
+      - "${PORT}:9000"
+    networks:
+      - ${NETWORK_NAME}
+
+networks:
+  ${NETWORK_NAME}:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET}
+          gateway: ${GATEWAY}
