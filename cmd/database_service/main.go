@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	handler_user_service "github.com/vwency/microservices_golang/internal/database/delivery/grpc/handler/user_service"
+	handler_user_service_gprc "github.com/vwency/microservices_golang/internal/database/delivery/grpc/handler/user_service"
 	"github.com/vwency/microservices_golang/internal/database/repository"
 	"github.com/vwency/microservices_golang/internal/database/repository/user_repository"
 	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase"
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	userHandler := handler_user_service.NewServer(userUC, logger)
+	userHandler := handler_user_service_gprc.NewServer(userUC, logger)
 	userHandler.Register(grpcServer)
 
 	logger.Info("Starting server",
