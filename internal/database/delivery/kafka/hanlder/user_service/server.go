@@ -61,7 +61,6 @@ func (s *Server) HandleMessages(ctx context.Context, reader *kafka.Reader) {
 					zap.String("key", string(msg.Key)),
 					zap.Error(err))
 
-				// Optionally send error response
 				errorResponse := map[string]interface{}{
 					"success": false,
 					"error":   err.Error(),

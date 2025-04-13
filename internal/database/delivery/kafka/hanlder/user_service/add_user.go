@@ -70,7 +70,6 @@ func (h *AddUserHandler) Handle(ctx context.Context, msg kafka.Message) error {
 	h.logger.Info("user created successfully",
 		zap.String("username", req.Username))
 
-	// Optionally produce a success message
 	response := map[string]interface{}{
 		"success": true,
 		"message": "User created successfully",

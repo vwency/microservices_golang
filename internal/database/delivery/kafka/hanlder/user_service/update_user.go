@@ -68,7 +68,6 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, msg kafka.Message) error
 	h.logger.Info("tokens updated successfully",
 		zap.String("username", req.Username))
 
-	// Produce success response
 	response := map[string]interface{}{
 		"success": true,
 		"message": "Tokens updated successfully",
