@@ -3,15 +3,26 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/spf13/viper"
 )
 
 func Init(env, servicePath string, cfg any) {
-	viper.SetConfigName("config" + env)
+	if env == "" {
+		env = os.Getenv("ENV")
+	}
+
+	if env == "" {
+		viper.SetConfigName("config")
+	} else {
+		viper.SetConfigName("config." + env)
+	}
+
 	viper.SetConfigType("yaml")
 
 	viper.AddConfigPath(fmt.Sprintf("./config/%s", servicePath))
+	viper.AddConfigPath(fmt.Sprintf("/app/config/%s", servicePath))
 	viper.AddConfigPath(".")
 
 	if err := viper.ReadInConfig(); err != nil {
