@@ -2,13 +2,11 @@ package auth_service_usecase
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/argon2"
 )
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, password, email string) (*authv1.RegisterResponse, error) {
@@ -17,12 +15,10 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
-	// Step 1: Hash the password with Argon2
-	salt := []byte(username) // Using username as salt (consider random salt in production)
-	hashedPassword := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	encodedPassword := base64.StdEncoding.EncodeToString(hashedPassword)
+	// Step 1: Store plain password (for testing only)
+	encodedPassword := password
 
-	// Step 2: Generate tokens first (we'll need them for storage)
+	// Step 2: Generate tokens
 	// Temporary userID for token generation (will be replaced with actual ID from DB)
 	tempUserID := username
 
@@ -42,14 +38,11 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
-	// Hash the tokens before storage
-	hashedAccessToken := argon2.IDKey([]byte(accessToken), salt, 1, 64*1024, 4, 32)
-	encodedAccessToken := base64.StdEncoding.EncodeToString(hashedAccessToken)
+	// Store plain tokens (for testing only)
+	encodedAccessToken := accessToken
+	encodedRefreshToken := refreshToken
 
-	hashedRefreshToken := argon2.IDKey([]byte(refreshToken), salt, 1, 64*1024, 4, 32)
-	encodedRefreshToken := base64.StdEncoding.EncodeToString(hashedRefreshToken)
-
-	// Step 3: Add user to database with hashed tokens
+	// Step 3: Add user to database
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           username,
 		HashedPassword:     encodedPassword,
@@ -91,16 +84,12 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("user not found after creation")
 	}
 
-	// If we need to update tokens with actual user_id, we would do it here
-	// But typically the tokens are valid with username as identifier
-
 	uc.logger.Info("User registered successfully",
 		zap.String("userID", getUserResp.UserId),
 		zap.String("username", username),
 		zap.Time("accessTokenExpiry", expiresAt),
 		zap.Time("refreshTokenExpiry", refreshExpiresAt))
 
-	// Return the original (unhashed) tokens to the client
 	return &authv1.RegisterResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

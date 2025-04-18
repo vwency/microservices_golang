@@ -20,6 +20,18 @@ func (r *UserRepositoryImpl) RunMigrations() error {
 	return RunUserMigrations(r.db)
 }
 
+func (r *UserRepositoryImpl) GetUserByID(id string) (*models.User, error) {
+	var user models.User
+	result := r.db.Where("id = ?", id).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get user by ID: %w", result.Error)
+	}
+	return &user, nil
+}
+
 func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
 	var user models.User
 	query := r.db.Model(&models.User{})
@@ -50,12 +62,18 @@ func (r *UserRepositoryImpl) AddUser(user *models.User) error {
 	return result.Error
 }
 
-func (r *UserRepositoryImpl) UpdateUserTokens(username, hashedRt, hashedAt string) error {
+func (r *UserRepositoryImpl) UpdateUserTokens(userID, HashedRefreshToken, HashedAccessToken string) error {
 	result := r.db.Model(&models.User{}).
-		Where("username = ?", username).
+		Where("id = ?", userID).
 		Updates(map[string]interface{}{
-			"hashed_rt": hashedRt,
-			"hashed_at": hashedAt,
+			"hashed_refresh_token": HashedRefreshToken,
+			"hashed_access_token":  HashedAccessToken,
 		})
-	return result.Error
+	if result.Error != nil {
+		return fmt.Errorf("failed to update tokens: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
 }

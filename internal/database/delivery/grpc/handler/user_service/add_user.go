@@ -33,13 +33,11 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *databasev1.AddUserReq
 	}
 
 	params := user_usecase.CreateUserParams{
-		UserParams: user_usecase.UserParams{
-			Username: req.GetUsername(),
-			Email:    req.GetEmail(),
-		},
+		Username:       req.GetUsername(),
+		Email:          req.GetEmail(),
 		HashedPassword: req.GetHashedPassword(),
-		HashedRt:       req.GetHashedRefreshToken(), // Changed from HashedRt to match proto
-		HashedAt:       req.GetHashedAccessToken(),  // Changed from time.Now() to match proto
+		HashedRt:       req.GetHashedRefreshToken(),
+		HashedAt:       req.GetHashedAccessToken(),
 		CreatedAt:      time.Now().Format(time.RFC3339),
 	}
 

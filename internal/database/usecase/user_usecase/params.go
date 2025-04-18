@@ -3,11 +3,14 @@ package user_usecase
 import "errors"
 
 type UserParams struct {
+	UserID   string
 	Username string
 	Email    string
 }
+
 type CreateUserParams struct {
-	UserParams
+	Username       string
+	Email          string
 	HashedPassword string
 	HashedRt       string
 	HashedAt       string
@@ -35,13 +38,10 @@ func (p *CreateUserParams) Validate() error {
 
 func (p *UpdateTokensParams) Validate() error {
 	if p.UserID == "" {
-		return errors.New("username cannot be empty")
+		return errors.New("user ID cannot be empty")
 	}
 	if p.HashedRefreshToken == "" {
 		return errors.New("refresh token cannot be empty")
 	}
-	// if p.HashedAccessToken == "" {
-	// 	return errors.New("hashed_at cannot be empty")
-	// }
 	return nil
 }

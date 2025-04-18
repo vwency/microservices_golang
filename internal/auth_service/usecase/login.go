@@ -1,15 +1,13 @@
 package auth_service_usecase
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/argon2"
 )
 
 var (
@@ -34,77 +32,61 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	// Get user from database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
 	if err != nil {
-		uc.logger.Error("Failed to get user",
+		uc.logger.Error("Failed to get user from database",
 			zap.String("username", username),
 			zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	if !getUserResp.Found {
-		uc.logger.Warn("User not found", zap.String("username", username))
+		uc.logger.Warn("User not found in database", zap.String("username", username))
 		return nil, ErrUserNotFound
 	}
 
-	// Verify password
-	storedPassword, err := base64.StdEncoding.DecodeString(getUserResp.HashedPassword)
-	if err != nil {
-		uc.logger.Error("Failed to decode stored password",
-			zap.String("username", username),
-			zap.Error(err))
-		return nil, err
-	}
-
-	salt := []byte(username)
-	hashedPassword := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	if !bytes.Equal(storedPassword, hashedPassword) {
-		uc.logger.Warn("Invalid credentials", zap.String("username", username))
+	// Verify password (in real app use proper hashing)
+	if getUserResp.HashedPassword != password {
+		uc.logger.Warn("Invalid password provided", zap.String("username", username))
 		return nil, ErrInvalidCredentials
 	}
 
 	// Generate tokens
-	roles := []string{"user"} // Default role, adjust as needed
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, roles)
+	roles := []string{"user"} // Default role
+	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(getUserResp.UserId, roles)
 	if err != nil {
 		uc.logger.Error("Failed to generate access token",
-			zap.String("username", username),
-			zap.Error(err))
-		return nil, ErrTokenGeneration
-	}
-
-	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(username, roles)
-	if err != nil {
-		uc.logger.Error("Failed to generate refresh token",
-			zap.String("username", username),
-			zap.Error(err))
-		return nil, ErrTokenGeneration
-	}
-
-	// Hash tokens before storage
-	hashedAccessToken := argon2.IDKey([]byte(accessToken), salt, 1, 64*1024, 4, 32)
-	encodedAccessToken := base64.StdEncoding.EncodeToString(hashedAccessToken)
-
-	hashedRefreshToken := argon2.IDKey([]byte(refreshToken), salt, 1, 64*1024, 4, 32)
-	encodedRefreshToken := base64.StdEncoding.EncodeToString(hashedRefreshToken)
-
-	// Update user with new hashed tokens
-	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
-		UserId:             getUserResp.UserId, // Using UserId instead of Username
-		HashedRefreshToken: encodedRefreshToken,
-		HashedAccessToken:  encodedAccessToken,
-	})
-	if err != nil {
-		uc.logger.Error("Failed to update user tokens",
 			zap.String("user_id", getUserResp.UserId),
 			zap.String("username", username),
 			zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("%w: access token", ErrTokenGeneration)
+	}
+
+	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(getUserResp.UserId, roles)
+	if err != nil {
+		uc.logger.Error("Failed to generate refresh token",
+			zap.String("user_id", getUserResp.UserId),
+			zap.String("username", username),
+			zap.Error(err))
+		return nil, fmt.Errorf("%w: refresh token", ErrTokenGeneration)
+	}
+	fmt.Printf(refreshExpiresAt.String())
+
+	// Update user with new tokens
+	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
+		UserId:             getUserResp.UserId,
+		HashedRefreshToken: refreshToken,
+		HashedAccessToken:  accessToken,
+	})
+	if err != nil {
+		uc.logger.Error("Failed to update user tokens in database",
+			zap.String("user_id", getUserResp.UserId),
+			zap.String("username", username),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to update tokens: %w", err)
 	}
 
 	uc.logger.Info("Login successful",
 		zap.String("user_id", getUserResp.UserId),
-		zap.String("username", username),
-		zap.Time("access_token_expiry", expiresAt),
-		zap.Time("refresh_token_expiry", refreshExpiresAt))
+		zap.String("username", username))
 
 	return &TokenPair{
 		AccessToken:  accessToken,
