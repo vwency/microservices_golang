@@ -13,5 +13,6 @@ app:
 auth_service:
   url: "localhost:50056"
 
+
 database_service:
-  url: "localhost:50052"
+  url: "database_service:50052"

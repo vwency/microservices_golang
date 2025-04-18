@@ -39,6 +39,26 @@ services:
       app_network:
         ipv4_address: 192.168.1.3
 
+  auth_service:
+    build:
+      context: .
+      dockerfile: ./deploy/auth_service/Dockerfile
+    container_name: auth_service
+    depends_on:
+      database_service:
+        condition: service_started
+    environment:
+      PORT: 50056
+      LOG_LEVEL: debug
+      AUTH_SECRET_KEY: "supersecretkey"
+      TOKEN_TTL: 3600
+    ports:
+      - "50056:50056"
+    networks:
+      app_network:
+        ipv4_address: 192.168.1.4
+
+
 networks:
   app_network:
     driver: bridge
