@@ -8,30 +8,31 @@
     
     # Копируем исходники и билдим
     COPY . .
-    RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/database_service cmd/database_service/main.go
+    RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/gateway cmd/gateway/main.go
     
     # --- Final stage ---
     FROM alpine:3.19
     # Устанавливаем зависимости
-    RUN apk add --no-cache ca-certificates postgresql-client
+    RUN apk add --no-cache ca-certificates
     
     # Копируем бинарник
-    COPY --from=builder /bin/database_service /bin/database_service
+    COPY --from=builder /bin/gateway /bin/gateway
     
     # Копируем конфиги
-    COPY ./config /app/config
+    COPY ./config/gateway /app/config
     
     # Runtime переменные
     ENV ENV=dev \
-        PORT=50052 \
+        PORT=50058 \
         LOG_LEVEL=debug \
+        AUTH_SERVICE_URL="localhost:50058" \
         DATABASE_URL="postgres://postgres:password@postgres:5438/pure?sslmode=disable"
     
     WORKDIR /app
     
     # Healthcheck
-    HEALTHCHECK --interval=30s --timeout=3s CMD pg_isready -d "$DATABASE_URL" || exit 1
+    HEALTHCHECK --interval=30s --timeout=3s CMD nc -zv localhost $PORT || exit 1
     
     # Запуск
-    ENTRYPOINT ["/bin/database_service"]
+    ENTRYPOINT ["/bin/gateway"]
     
