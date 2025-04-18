@@ -70,9 +70,9 @@ func (h *GetUserHandler) Handle(ctx context.Context, msg kafka.Message) error {
 		response["found"] = true
 		response["username"] = user.Username
 		response["email"] = email
-		response["hashed_rt"] = user.HashedRt
+		response["hashed_rt"] = user.HashedRefreshToken
 		response["hashed_password"] = user.HashedPassword
-		response["hashed_at"] = user.HashedAt
+		response["hashed_at"] = user.HashedAccessToken
 		response["message"] = "User found"
 	}
 
