@@ -1,4 +1,4 @@
-package handler_user_service_gprc
+package handler_user_service_grpc
 
 import (
 	"context"
@@ -56,13 +56,20 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 		email = *user.Email
 	}
 
+	// Convert UUID to string
+	userID := ""
+	if user.ID != [16]byte{} { // Check if UUID is not zero value
+		userID = user.ID.String()
+	}
+
 	return &pb.GetUserResponse{
-		Found:          true,
-		Username:       user.Username,
-		Email:          email,
-		HashedRt:       user.HashedRefreshToken,
-		HashedPassword: user.HashedPassword,
-		HashedAt:       user.HashedAccessToken,
-		Message:        "User found",
+		Found:              true,
+		UserId:             userID,
+		Username:           user.Username,
+		Email:              email,
+		HashedPassword:     user.HashedPassword,
+		HashedRefreshToken: user.HashedRefreshToken,
+		HashedAccessToken:  user.HashedAccessToken,
+		Message:            "User found",
 	}, nil
 }

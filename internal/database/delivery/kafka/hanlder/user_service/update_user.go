@@ -48,9 +48,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, msg kafka.Message) error
 	}
 
 	updateParams := user_usecase.UpdateTokensParams{
-		Username: req.Username,
-		HashedRt: req.HashedRt,
-		HashedAt: req.AccessRt,
+		UserID:             req.Username,
+		HashedRefreshToken: req.HashedRt,
+		HashedAccessToken:  req.AccessRt,
 	}
 
 	err := h.uc.UpdateTokens(updateParams)

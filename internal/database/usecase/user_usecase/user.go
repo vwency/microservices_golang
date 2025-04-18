@@ -68,32 +68,32 @@ func (uc *UserUsecase) CreateUser(params CreateUserParams) error {
 func (uc *UserUsecase) UpdateTokens(params UpdateTokensParams) error {
 	if err := params.Validate(); err != nil {
 		uc.logger.Warn("validation failed",
-			zap.String("username", params.Username),
+			zap.String("username", params.UserID),
 			zap.Error(err))
 		return fmt.Errorf("validation error: %w", err)
 	}
 
-	user, err := uc.GetUser(UserParams{Username: params.Username})
+	user, err := uc.GetUser(UserParams{Username: params.UserID})
 	if err != nil {
 		uc.logger.Error("failed to get user for token update",
-			zap.String("username", params.Username),
+			zap.String("username", params.UserID),
 			zap.Error(err))
 		return fmt.Errorf("get user failed: %w", err)
 	}
 	if user == nil {
 		uc.logger.Warn("user not found for token update",
-			zap.String("username", params.Username))
+			zap.String("username", params.UserID))
 		return ErrUserNotFound
 	}
 
-	if err := uc.repo.UpdateUserTokens(params.Username, params.HashedRt, params.HashedAt); err != nil {
+	if err := uc.repo.UpdateUserTokens(params.UserID, params.HashedRefreshToken, params.HashedAccessToken); err != nil {
 		uc.logger.Error("failed to update tokens",
-			zap.String("username", params.Username),
+			zap.String("username", params.UserID),
 			zap.Error(err))
 		return fmt.Errorf("update tokens failed: %w", err)
 	}
 
 	uc.logger.Info("tokens updated successfully",
-		zap.String("username", params.Username))
+		zap.String("username", params.UserID))
 	return nil
 }

@@ -25,11 +25,13 @@ type TokenPair struct {
 func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*TokenPair, error) {
 	uc.logger.Info("Attempting login for user", zap.String("username", username))
 
+	// Validate input
 	if username == "" || password == "" {
 		uc.logger.Warn("Empty username or password provided")
 		return nil, ErrInvalidCredentials
 	}
 
+	// Get user from database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
 	if err != nil {
 		uc.logger.Error("Failed to get user",
@@ -59,7 +61,8 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
-	roles := []string{"user"}
+	// Generate tokens
+	roles := []string{"user"} // Default role, adjust as needed
 	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, roles)
 	if err != nil {
 		uc.logger.Error("Failed to generate access token",
@@ -68,7 +71,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrTokenGeneration
 	}
 
-	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(username, roles)
+	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(username, roles)
 	if err != nil {
 		uc.logger.Error("Failed to generate refresh token",
 			zap.String("username", username),
@@ -76,27 +79,32 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrTokenGeneration
 	}
 
-	if accessToken == "" || refreshToken == "" {
-		uc.logger.Error("Generated tokens are empty",
-			zap.String("username", username))
-		return nil, ErrTokenGeneration
-	}
+	// Hash tokens before storage
+	hashedAccessToken := argon2.IDKey([]byte(accessToken), salt, 1, 64*1024, 4, 32)
+	encodedAccessToken := base64.StdEncoding.EncodeToString(hashedAccessToken)
 
+	hashedRefreshToken := argon2.IDKey([]byte(refreshToken), salt, 1, 64*1024, 4, 32)
+	encodedRefreshToken := base64.StdEncoding.EncodeToString(hashedRefreshToken)
+
+	// Update user with new hashed tokens
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
-		Username: username,
-		HashedRt: refreshToken,
-		AccessRt: accessToken,
+		UserId:             getUserResp.UserId, // Using UserId instead of Username
+		HashedRefreshToken: encodedRefreshToken,
+		HashedAccessToken:  encodedAccessToken,
 	})
 	if err != nil {
-		uc.logger.Error("Failed to update user with refresh token",
+		uc.logger.Error("Failed to update user tokens",
+			zap.String("user_id", getUserResp.UserId),
 			zap.String("username", username),
 			zap.Error(err))
 		return nil, err
 	}
 
-	uc.logger.Debug("Successfully logged in user",
+	uc.logger.Info("Login successful",
+		zap.String("user_id", getUserResp.UserId),
 		zap.String("username", username),
-		zap.Time("expires_at", expiresAt))
+		zap.Time("access_token_expiry", expiresAt),
+		zap.Time("refresh_token_expiry", refreshExpiresAt))
 
 	return &TokenPair{
 		AccessToken:  accessToken,

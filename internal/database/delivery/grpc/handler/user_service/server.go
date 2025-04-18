@@ -1,4 +1,4 @@
-package handler_user_service_gprc
+package handler_user_service_grpc
 
 import (
 	"context"

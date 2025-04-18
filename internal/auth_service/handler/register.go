@@ -26,7 +26,10 @@ func (h *RegisterHandler) Register(ctx context.Context, req *authv1.RegisterRequ
 
 	response, err := h.usecase.Register(ctx, req.Username, req.Password, req.Email)
 	if err != nil {
-		h.logger.Error("Registration failed", zap.Error(err))
+		h.logger.Error("Registration failed",
+			zap.Error(err),
+			zap.String("username", req.Username),
+			zap.String("email", req.Email))
 		return nil, status.Errorf(codes.Internal, "registration failed: %v", err)
 	}
 

@@ -23,18 +23,29 @@ func NewLogoutUsecase(dbClient databasev1.DatabaseInitServiceClient, jwtManager 
 }
 
 func (uc *LogoutUsecase) Logout(ctx context.Context, username string) (bool, error) {
-	_, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
+	// First get the user to obtain their user_id
+	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
 	if err != nil {
 		uc.logger.Error("Failed to get user", zap.String("username", username), zap.Error(err))
 		return false, err
 	}
 
+	if !getUserResp.Found {
+		uc.logger.Error("User not found", zap.String("username", username))
+		return false, nil
+	}
+
+	// Update the user with empty refresh and access tokens
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
-		Username: username,
-		HashedRt: "",
+		UserId:             getUserResp.UserId,
+		HashedRefreshToken: "",
+		HashedAccessToken:  "",
 	})
 	if err != nil {
-		uc.logger.Error("Failed to update user during logout", zap.String("username", username), zap.Error(err))
+		uc.logger.Error("Failed to update user during logout",
+			zap.String("username", username),
+			zap.String("user_id", getUserResp.UserId),
+			zap.Error(err))
 		return false, err
 	}
 

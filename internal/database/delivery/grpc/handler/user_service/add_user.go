@@ -1,4 +1,4 @@
-package handler_user_service_gprc
+package handler_user_service_grpc
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/vwency/microservices_golang/internal/database/usecase/user_usecase"
-	pb "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,7 +24,7 @@ func NewAddUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *AddUse
 	}
 }
 
-func (h *AddUserHandler) AddUser(ctx context.Context, req *pb.AddUserRequest) (*pb.AddUserResponse, error) {
+func (h *AddUserHandler) AddUser(ctx context.Context, req *databasev1.AddUserRequest) (*databasev1.AddUserResponse, error) {
 	if req.GetUsername() == "" || req.GetHashedPassword() == "" || req.GetEmail() == "" {
 		h.logger.Warn("missing required fields",
 			zap.String("username", req.GetUsername()),
@@ -38,8 +38,9 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *pb.AddUserRequest) (*
 			Email:    req.GetEmail(),
 		},
 		HashedPassword: req.GetHashedPassword(),
-		HashedRt:       req.GetHashedRt(),
-		HashedAt:       time.Now().Format(time.RFC3339),
+		HashedRt:       req.GetHashedRefreshToken(), // Changed from HashedRt to match proto
+		HashedAt:       req.GetHashedAccessToken(),  // Changed from time.Now() to match proto
+		CreatedAt:      time.Now().Format(time.RFC3339),
 	}
 
 	if err := h.uc.CreateUser(params); err != nil {
@@ -57,7 +58,7 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *pb.AddUserRequest) (*
 	h.logger.Info("user created successfully",
 		zap.String("username", req.GetUsername()))
 
-	return &pb.AddUserResponse{
+	return &databasev1.AddUserResponse{
 		Success: true,
 		Message: "User created successfully",
 	}, nil

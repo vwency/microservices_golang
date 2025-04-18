@@ -27,21 +27,21 @@ message GetUserRequest {
 
 message GetUserResponse {
   bool found = 1;
-  string user_id = 2; // This should be the user_id, not just the username.
+  string user_id = 2;
   string username = 3; 
   string email = 4;
-  string hashedRt = 5;
-  string hashedPassword = 6;
-  string hashedAt = 7;
+  string hashed_password = 5;
+  string hashed_refresh_token = 6;
+  string hashed_access_token = 7;
   string message = 8;
 }
 
 message AddUserRequest {
   string username = 1;
-  string hashedPassword = 2;
-  string hashedRt = 3;
-  string accessRt = 4;
-  string email = 5;
+  string hashed_password = 2;
+  string email = 3;
+  string hashed_refresh_token = 4;
+  string hashed_access_token = 5;
 }
 
 message AddUserResponse {
@@ -50,9 +50,9 @@ message AddUserResponse {
 }
 
 message UpdateUserRequest {
-  string username = 1;
-  string hashedRt = 2;
-  string accessRt = 3;
+  string user_id = 1;
+  string hashed_refresh_token = 2;
+  string hashed_access_token = 3;
 }
 
 message UpdateUserResponse {

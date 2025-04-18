@@ -1,4 +1,4 @@
-package handler_user_service_gprc
+package handler_user_service_grpc
 
 import (
 	"context"
@@ -25,26 +25,26 @@ func NewUpdateUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *Upd
 }
 
 func (h *UpdateUserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
-	if req.GetUsername() == "" {
-		h.logger.Warn("empty username in request")
-		return nil, status.Error(codes.InvalidArgument, "username is required")
+	if req.GetUserId() == "" {
+		h.logger.Warn("empty user_id in request")
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
-	if req.GetHashedRt() == "" || req.GetAccessRt() == "" {
+	if req.GetHashedRefreshToken() == "" || req.GetHashedAccessToken() == "" {
 		h.logger.Warn("empty token fields in request",
-			zap.String("username", req.GetUsername()))
+			zap.String("user_id", req.GetUserId()))
 		return nil, status.Error(codes.InvalidArgument, "token fields cannot be empty")
 	}
 
 	updateParams := user_usecase.UpdateTokensParams{
-		Username: req.GetUsername(),
-		HashedRt: req.GetHashedRt(),
-		HashedAt: req.GetAccessRt(),
+		UserID:             req.GetUserId(),
+		HashedRefreshToken: req.GetHashedRefreshToken(),
+		HashedAccessToken:  req.GetHashedAccessToken(),
 	}
 
 	err := h.uc.UpdateTokens(updateParams)
 	if err != nil {
 		h.logger.Error("failed to update user tokens",
-			zap.String("username", req.GetUsername()),
+			zap.String("user_id", req.GetUserId()),
 			zap.Error(err))
 
 		switch {
@@ -56,7 +56,7 @@ func (h *UpdateUserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 	}
 
 	h.logger.Info("tokens updated successfully",
-		zap.String("username", req.GetUsername()))
+		zap.String("user_id", req.GetUserId()))
 
 	return &pb.UpdateUserResponse{
 		Success: true,

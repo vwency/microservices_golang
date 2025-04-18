@@ -11,12 +11,13 @@ type CreateUserParams struct {
 	HashedPassword string
 	HashedRt       string
 	HashedAt       string
+	CreatedAt      string
 }
 
 type UpdateTokensParams struct {
-	Username string
-	HashedRt string
-	HashedAt string
+	UserID             string
+	HashedRefreshToken string
+	HashedAccessToken  string
 }
 
 func (p *CreateUserParams) Validate() error {
@@ -33,14 +34,14 @@ func (p *CreateUserParams) Validate() error {
 }
 
 func (p *UpdateTokensParams) Validate() error {
-	if p.Username == "" {
+	if p.UserID == "" {
 		return errors.New("username cannot be empty")
 	}
-	if p.HashedRt == "" {
+	if p.HashedRefreshToken == "" {
 		return errors.New("refresh token cannot be empty")
 	}
-	if p.HashedAt == "" {
-		return errors.New("hashed_at cannot be empty")
-	}
+	// if p.HashedAccessToken == "" {
+	// 	return errors.New("hashed_at cannot be empty")
+	// }
 	return nil
 }
