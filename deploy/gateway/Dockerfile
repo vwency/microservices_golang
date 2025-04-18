@@ -19,7 +19,7 @@
     COPY --from=builder /bin/gateway /bin/gateway
     
     # Копируем конфиги
-    COPY ./config/gateway /app/config
+    COPY ./config/gateway /app/config/gateway
     
     # Runtime переменные
     ENV ENV=dev \

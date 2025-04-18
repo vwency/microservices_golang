@@ -18,7 +18,8 @@ func main() {
 
 	logger.Init(Cfg.App.LogLevel)
 
-	authService, err := service.NewAuthServiceClient(Cfg.AuthService.URL, Cfg.DatabaseService.URL)
+	authService, err := service.NewAuthServiceClient(Cfg.AuthService.URL)
+
 	if err != nil {
 		logger.Fatal("could not create service clients: %v", err)
 	}

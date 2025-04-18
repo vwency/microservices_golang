@@ -5,32 +5,23 @@ import (
 	"fmt"
 
 	"github.com/vwency/microservices_golang/proto/auth_service"
-	database_init "github.com/vwency/microservices_golang/proto/database"
 	"google.golang.org/grpc"
 )
 
 type AuthServiceClient struct {
-	Client   auth_service.AuthServiceClient
-	DBClient database_init.DatabaseInitServiceClient
+	Client auth_service.AuthServiceClient
 }
 
-func NewAuthServiceClient(authAddress, dbAddress string) (*AuthServiceClient, error) {
+func NewAuthServiceClient(authAddress string) (*AuthServiceClient, error) {
 	authConn, err := grpc.Dial(authAddress, grpc.WithInsecure())
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to auth service: %v", err)
 	}
 
-	dbConn, err := grpc.Dial(dbAddress, grpc.WithInsecure())
-	if err != nil {
-		return nil, fmt.Errorf("could not connect to database service: %v", err)
-	}
-
 	authClient := auth_service.NewAuthServiceClient(authConn)
-	dbClient := database_init.NewDatabaseInitServiceClient(dbConn)
 
 	return &AuthServiceClient{
-		Client:   authClient,
-		DBClient: dbClient,
+		Client: authClient,
 	}, nil
 }
 
@@ -70,12 +61,4 @@ func (c *AuthServiceClient) Refresh(ctx context.Context, refreshToken string) (*
 		RefreshToken: refreshToken,
 	}
 	return c.Client.Refresh(ctx, req)
-}
-
-func (c *AuthServiceClient) GetUser(ctx context.Context, username, email string) (*database_init.GetUserResponse, error) {
-	req := &database_init.GetUserRequest{
-		Username: username,
-		Email:    email,
-	}
-	return c.DBClient.GetUser(ctx, req)
 }

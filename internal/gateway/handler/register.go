@@ -27,17 +27,6 @@ func RegisterHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 			return
 		}
 
-		resp, err := authService.GetUser(r.Context(), registerReq.Username, registerReq.Email)
-		if err != nil {
-			http.Error(w, "Failed to check user existence", http.StatusInternalServerError)
-			return
-		}
-
-		if resp.Found {
-			http.Error(w, "User already exists", http.StatusConflict)
-			return
-		}
-
 		authResp, err := authService.Register(r.Context(), registerReq.Username, registerReq.Password, registerReq.Email)
 		if err != nil {
 			http.Error(w, "Failed to register user", http.StatusInternalServerError)

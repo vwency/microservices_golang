@@ -11,3 +11,4 @@ jwt:
   secret: "your_secret_key"
   access_token_ttl: "3600s" 
   refresh_token_ttl: "7200s" 
+        
