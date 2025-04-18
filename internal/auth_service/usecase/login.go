@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"time"
 
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/argon2"
+)
+
+var (
+	ErrTokenGeneration = errors.New("failed to generate tokens")
 )
 
 type TokenPair struct {
@@ -20,9 +25,16 @@ type TokenPair struct {
 func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*TokenPair, error) {
 	uc.logger.Info("Attempting login for user", zap.String("username", username))
 
+	if username == "" || password == "" {
+		uc.logger.Warn("Empty username or password provided")
+		return nil, ErrInvalidCredentials
+	}
+
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: username})
 	if err != nil {
-		uc.logger.Error("Failed to get user", zap.String("username", username), zap.Error(err))
+		uc.logger.Error("Failed to get user",
+			zap.String("username", username),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -31,9 +43,12 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrUserNotFound
 	}
 
+	// Verify password
 	storedPassword, err := base64.StdEncoding.DecodeString(getUserResp.HashedPassword)
 	if err != nil {
-		uc.logger.Error("Failed to decode stored password", zap.String("username", username), zap.Error(err))
+		uc.logger.Error("Failed to decode stored password",
+			zap.String("username", username),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -47,24 +62,41 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	roles := []string{"user"}
 	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, roles)
 	if err != nil {
-		uc.logger.Error("Failed to generate access token", zap.String("username", username), zap.Error(err))
-		return nil, err
+		uc.logger.Error("Failed to generate access token",
+			zap.String("username", username),
+			zap.Error(err))
+		return nil, ErrTokenGeneration
 	}
 
 	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(username, roles)
 	if err != nil {
-		uc.logger.Error("Failed to generate refresh token", zap.String("username", username), zap.Error(err))
-		return nil, err
+		uc.logger.Error("Failed to generate refresh token",
+			zap.String("username", username),
+			zap.Error(err))
+		return nil, ErrTokenGeneration
+	}
+
+	if accessToken == "" || refreshToken == "" {
+		uc.logger.Error("Generated tokens are empty",
+			zap.String("username", username))
+		return nil, ErrTokenGeneration
 	}
 
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 		Username: username,
 		HashedRt: refreshToken,
+		AccessRt: accessToken,
 	})
 	if err != nil {
-		uc.logger.Error("Failed to update user with refresh token", zap.String("username", username), zap.Error(err))
+		uc.logger.Error("Failed to update user with refresh token",
+			zap.String("username", username),
+			zap.Error(err))
 		return nil, err
 	}
+
+	uc.logger.Debug("Successfully logged in user",
+		zap.String("username", username),
+		zap.Time("expires_at", expiresAt))
 
 	return &TokenPair{
 		AccessToken:  accessToken,

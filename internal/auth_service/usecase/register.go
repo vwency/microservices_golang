@@ -12,6 +12,7 @@ import (
 )
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, password, email string) (*authv1.RegisterResponse, error) {
+	// Step 1: Hash the password
 	salt := []byte(username)
 	hashedPassword := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
 
@@ -22,23 +23,10 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 
 	encodedPassword := base64.StdEncoding.EncodeToString(hashedPassword)
 
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(username, []string{"user"})
-	if err != nil {
-		uc.logger.Error("Failed to generate access token", zap.Error(err))
-		return nil, err
-	}
-
-	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(username, []string{"user"})
-	if err != nil {
-		uc.logger.Error("Failed to generate refresh token", zap.Error(err))
-		return nil, err
-	}
-
+	// Step 2: Add user to the database (no user_id yet)
 	addUserReq := &databasev1.AddUserRequest{
 		Username:       username,
 		HashedPassword: encodedPassword,
-		HashedRt:       refreshToken,
-		AccessRt:       accessToken,
 		Email:          email,
 	}
 
@@ -53,6 +41,37 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to add user: %v", addUserResp.Message)
 	}
 
+	// Step 3: Retrieve user to get user_id
+	getUserReq := &databasev1.GetUserRequest{
+		Username: username,
+	}
+	getUserResp, err := uc.dbClient.GetUser(ctx, getUserReq)
+	if err != nil {
+		uc.logger.Error("Failed to get user from database", zap.Error(err))
+		return nil, err
+	}
+
+	if !getUserResp.Found {
+		uc.logger.Error("User not found after creation", zap.String("username", username))
+		return nil, fmt.Errorf("user not found after creation")
+	}
+
+	// Step 4: Use user_id from the response to generate JWT tokens
+	userID := getUserResp.Username // Assuming 'user_id' is returned in the 'username' field (modify if needed)
+
+	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(userID, []string{"user"})
+	if err != nil {
+		uc.logger.Error("Failed to generate access token", zap.Error(err))
+		return nil, err
+	}
+
+	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(userID, []string{"user"})
+	if err != nil {
+		uc.logger.Error("Failed to generate refresh token", zap.Error(err))
+		return nil, err
+	}
+
+	// Step 5: Return the response
 	return &authv1.RegisterResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

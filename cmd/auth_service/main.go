@@ -37,11 +37,14 @@ func main() {
 		log.Fatalf("invalid refresh_token_ttl value: %v", err)
 	}
 
-	jwtManager := jwt.NewJWTManager(
+	jwtManager, err := jwt.NewJWTManager(
 		Cfg.Jwt.Secret,
 		accessTokenTTL,
 		refreshTokenTTL,
 	)
+	if err != nil {
+		zapLogger.Fatal("failed to create JWT manager", zap.Error(err))
+	}
 
 	dbConn, err := grpc.Dial(Cfg.DatabaseService.URL, grpc.WithInsecure())
 	if err != nil {

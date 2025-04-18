@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,12 +20,15 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewJWTManager(secretKey string, accessTTL, refreshTTL time.Duration) *JWTManager {
+func NewJWTManager(secretKey string, accessTTL, refreshTTL time.Duration) (*JWTManager, error) {
+	if secretKey == "" {
+		return nil, errors.New("JWT secret key cannot be empty")
+	}
 	return &JWTManager{
 		secretKey:       secretKey,
 		accessTokenTTL:  accessTTL,
 		refreshTokenTTL: refreshTTL,
-	}
+	}, nil
 }
 
 func (m *JWTManager) GenerateAccessToken(userID string, roles []string) (string, time.Time, error) {
@@ -38,6 +42,13 @@ func (m *JWTManager) GenerateRefreshToken(userID string, roles []string) (string
 }
 
 func (m *JWTManager) generateToken(userID string, roles []string, expirationTime time.Time) (string, time.Time, error) {
+	if userID == "" {
+		return "", time.Time{}, errors.New("userID cannot be empty")
+	}
+	if len(roles) == 0 {
+		return "", time.Time{}, errors.New("roles cannot be empty")
+	}
+
 	claims := &Claims{
 		UserID: userID,
 		Roles:  roles,
@@ -49,6 +60,7 @@ func (m *JWTManager) generateToken(userID string, roles []string, expirationTime
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(m.secretKey))
+	fmt.Printf("Generating token for user: %s, roles: %v\n", userID, roles)
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -57,6 +69,10 @@ func (m *JWTManager) generateToken(userID string, roles []string, expirationTime
 }
 
 func (m *JWTManager) ValidateToken(tokenString string) (*Claims, error) {
+	if tokenString == "" {
+		return nil, errors.New("token string is empty")
+	}
+
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
