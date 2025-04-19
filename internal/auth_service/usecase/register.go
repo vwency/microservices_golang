@@ -11,76 +11,71 @@ import (
 )
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, password, email string) (*authv1.RegisterResponse, error) {
-	// Validate input
 	if username == "" || password == "" || email == "" {
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
-	// Step 1: Hash password with username-dependent hashinsg
 	hashedPassword, err := authutils.GenerateFromPassword(username, password, nil)
 	if err != nil {
-		uc.logger.Error("Failed to hash password",
-			zap.Error(err),
-			zap.String("username", username))
+		uc.logger.Error("Failed to hash password", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
-	// Step 2: Generate tokens
-	tempUserID := username // Temporary ID, will be replaced with actual ID from DB
+	tempUserID := username
 
 	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(tempUserID, []string{"user"})
 	if err != nil {
-		uc.logger.Error("Failed to generate access token",
-			zap.Error(err),
-			zap.String("tempUserID", tempUserID))
+		uc.logger.Error("Failed to generate access token", zap.Error(err), zap.String("tempUserID", tempUserID))
 		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
 	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(tempUserID, []string{"user"})
 	if err != nil {
-		uc.logger.Error("Failed to generate refresh token",
-			zap.Error(err),
-			zap.String("tempUserID", tempUserID))
+		uc.logger.Error("Failed to generate refresh token", zap.Error(err), zap.String("tempUserID", tempUserID))
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
+
+	// ✅ Используем статичный "pepper" вместо username
+	hashedAccessToken, err := authutils.GenerateFromPassword(tokenHashPepper, accessToken, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to hash access token: %v", err)
+	}
+
+	hashedRefreshToken, err := authutils.GenerateFromPassword(tokenHashPepper, refreshToken, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
+	}
+
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           username,
 		HashedPassword:     hashedPassword,
 		Email:              email,
-		HashedAccessToken:  accessToken,  // Note: Consider hashing these too
-		HashedRefreshToken: refreshToken, // Note: Consider hashing these too
+		HashedAccessToken:  hashedAccessToken,
+		HashedRefreshToken: hashedRefreshToken,
 	}
 
 	addUserResp, err := uc.dbClient.AddUser(ctx, addUserReq)
 	if err != nil {
-		uc.logger.Error("Failed to add user to database",
-			zap.Error(err),
-			zap.String("username", username))
+		uc.logger.Error("Failed to add user to database", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to add user: %v", err)
 	}
 
 	if !addUserResp.Success {
-		uc.logger.Error("Database operation failed",
-			zap.String("message", addUserResp.Message),
-			zap.String("username", username))
+		uc.logger.Error("Database operation failed", zap.String("message", addUserResp.Message), zap.String("username", username))
 		return nil, fmt.Errorf("database operation failed: %v", addUserResp.Message)
 	}
 
-	// Step 4: Get user details with actual user_id
-	getUserReq := &databasev1.GetUserRequest{
-		Username: username,
-	}
+	getUserReq := &databasev1.GetUserRequest{Username: username}
 	getUserResp, err := uc.dbClient.GetUser(ctx, getUserReq)
 	if err != nil {
-		uc.logger.Error("Failed to retrieve user after creation",
-			zap.Error(err),
-			zap.String("username", username))
+		uc.logger.Error("Failed to retrieve user after creation", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to retrieve user: %v", err)
 	}
 
 	if !getUserResp.Found {
-		uc.logger.Error("User not found after creation",
-			zap.String("username", username))
+		uc.logger.Error("User not found after creation", zap.String("username", username))
 		return nil, fmt.Errorf("user not found after creation")
 	}
 

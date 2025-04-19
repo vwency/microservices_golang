@@ -2,12 +2,11 @@ package auth_service_usecase
 
 import (
 	"context"
-	"encoding/base64"
 
 	"github.com/vwency/microservices_golang/pkg/jwt"
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/argon2"
 )
 
 type RefreshUsecase struct {
@@ -42,10 +41,14 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 	}
 
 	// Step 3: Verify the refresh token matches the hashed version in DB
-	salt := []byte(claims.UserID)
-	hashedIncomingToken := argon2.IDKey([]byte(refreshToken), salt, 1, 64*1024, 4, 32)
-	encodedIncomingToken := base64.StdEncoding.EncodeToString(hashedIncomingToken)
+	// Using GenerateFromPassword to hash the incoming refresh token
+	encodedIncomingToken, err := authutils.GenerateFromPassword(claims.UserID, refreshToken, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash incoming refresh token", zap.Error(err))
+		return nil, err
+	}
 
+	// Compare the generated hash with the stored hash in the database
 	if getUserResp.HashedRefreshToken != encodedIncomingToken {
 		uc.logger.Warn("Refresh token mismatch",
 			zap.String("user_id", claims.UserID))
@@ -69,9 +72,12 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, err
 	}
 
-	// Step 5: Hash the new refresh token before storing
-	hashedNewRefreshToken := argon2.IDKey([]byte(newRefreshToken), salt, 1, 64*1024, 4, 32)
-	encodedNewRefreshToken := base64.StdEncoding.EncodeToString(hashedNewRefreshToken)
+	// Step 5: Hash the new refresh token before storing using GenerateFromPassword
+	encodedNewRefreshToken, err := authutils.GenerateFromPassword(claims.UserID, newRefreshToken, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash new refresh token", zap.Error(err))
+		return nil, err
+	}
 
 	// Step 6: Update user in database with new tokens
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{

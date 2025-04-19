@@ -6,6 +6,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const tokenHashPepper = "static-token-hash-secret"
+
 type AuthUsecase struct {
 	dbClient   databasev1.DatabaseInitServiceClient
 	jwtManager *jwt.JWTManager
