@@ -1,0 +1,137 @@
+package authutils
+
+import (
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"strings"
+
+	"golang.org/x/crypto/argon2"
+)
+
+type Argon2Params struct {
+	Memory      uint32
+	Iterations  uint32
+	Parallelism uint8
+	SaltLength  uint32
+	KeyLength   uint32
+}
+
+var (
+	ErrInvalidHash         = errors.New("the encoded hash is not in the correct format")
+	ErrIncompatibleVersion = errors.New("incompatible version of argon2")
+)
+
+var DefaultArgon2Params = &Argon2Params{
+	Memory:      64 * 1024, // 64 MB
+	Iterations:  3,
+	Parallelism: 2,
+	SaltLength:  16,
+	KeyLength:   32,
+}
+
+// GenerateFromPassword создает хэш пароля с использованием Argon2id, включая username как pepper
+func GenerateFromPassword(username, password string, p *Argon2Params) (encodedHash string, err error) {
+	if p == nil {
+		p = DefaultArgon2Params
+	}
+
+	// Генерируем криптографически безопасную соль
+	salt := make([]byte, p.SaltLength)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
+	}
+
+	// Создаем "pepper" из username (можно добавить дополнительную обработку)
+	pepper := []byte(username)
+
+	// Комбинируем пароль и pepper перед хэшированием
+	pepperedPassword := append([]byte(password), pepper...)
+
+	// Генерируем хэш с использованием Argon2
+	hash := argon2.IDKey(
+		pepperedPassword,
+		salt,
+		p.Iterations,
+		p.Memory,
+		p.Parallelism,
+		p.KeyLength,
+	)
+
+	// Кодируем соль и хэш в base64
+	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
+	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
+
+	// Формируем строку хэша в стандартном формате
+	encodedHash = fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
+		argon2.Version,
+		p.Memory,
+		p.Iterations,
+		p.Parallelism,
+		b64Salt,
+		b64Hash,
+	)
+
+	return encodedHash, nil
+}
+
+// ComparePasswordAndHash сравнивает пароль с хранимым хэшем, учитывая username как pepper
+func ComparePasswordAndHash(username, password, encodedHash string) (match bool, err error) {
+	// Извлекаем параметры, соль и хэш из строки
+	p, salt, hash, err := decodeHash(encodedHash)
+	if err != nil {
+		return false, err
+	}
+
+	// Создаем pepper из username
+	pepper := []byte(username)
+	pepperedPassword := append([]byte(password), pepper...)
+
+	// Генерируем хэш для сравнения
+	otherHash := argon2.IDKey(pepperedPassword, salt, p.Iterations, p.Memory, p.Parallelism, p.KeyLength)
+
+	// Сравниваем хэши
+	if subtle.ConstantTimeCompare(hash, otherHash) == 1 {
+		return true, nil
+	}
+	return false, nil
+}
+
+// decodeHash остается без изменений
+func decodeHash(encodedHash string) (p *Argon2Params, salt, hash []byte, err error) {
+	vals := strings.Split(encodedHash, "$")
+	if len(vals) != 6 {
+		return nil, nil, nil, ErrInvalidHash
+	}
+
+	var version int
+	_, err = fmt.Sscanf(vals[2], "v=%d", &version)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if version != argon2.Version {
+		return nil, nil, nil, ErrIncompatibleVersion
+	}
+
+	p = &Argon2Params{}
+	_, err = fmt.Sscanf(vals[3], "m=%d,t=%d,p=%d", &p.Memory, &p.Iterations, &p.Parallelism)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	salt, err = base64.RawStdEncoding.DecodeString(vals[4])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	p.SaltLength = uint32(len(salt))
+
+	hash, err = base64.RawStdEncoding.DecodeString(vals[5])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	p.KeyLength = uint32(len(hash))
+
+	return p, salt, hash, nil
+}

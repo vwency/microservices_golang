@@ -6,6 +6,7 @@ import (
 
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
 
@@ -15,12 +16,17 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
-	// Step 1: Store plain password (for testing only)
-	encodedPassword := password
+	// Step 1: Hash password with username-dependent hashinsg
+	hashedPassword, err := authutils.GenerateFromPassword(username, password, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash password",
+			zap.Error(err),
+			zap.String("username", username))
+		return nil, fmt.Errorf("failed to hash password: %v", err)
+	}
 
 	// Step 2: Generate tokens
-	// Temporary userID for token generation (will be replaced with actual ID from DB)
-	tempUserID := username
+	tempUserID := username // Temporary ID, will be replaced with actual ID from DB
 
 	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(tempUserID, []string{"user"})
 	if err != nil {
@@ -37,18 +43,12 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 			zap.String("tempUserID", tempUserID))
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
-
-	// Store plain tokens (for testing only)
-	encodedAccessToken := accessToken
-	encodedRefreshToken := refreshToken
-
-	// Step 3: Add user to database
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           username,
-		HashedPassword:     encodedPassword,
+		HashedPassword:     hashedPassword,
 		Email:              email,
-		HashedAccessToken:  encodedAccessToken,
-		HashedRefreshToken: encodedRefreshToken,
+		HashedAccessToken:  accessToken,  // Note: Consider hashing these too
+		HashedRefreshToken: refreshToken, // Note: Consider hashing these too
 	}
 
 	addUserResp, err := uc.dbClient.AddUser(ctx, addUserReq)
