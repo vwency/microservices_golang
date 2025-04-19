@@ -2,9 +2,10 @@ package user_repository
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/vwency/microservices_golang/internal/database/models"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -12,24 +13,28 @@ type UserRepositoryImpl struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
+func NewUserRepository(db *gorm.DB) *UserRepositoryImpl {
 	return &UserRepositoryImpl{db: db}
 }
 
 func (r *UserRepositoryImpl) RunMigrations() error {
-	return RunUserMigrations(r.db)
+	if err := r.db.AutoMigrate(&models.User{}); err != nil {
+		return status.Errorf(codes.Internal, "failed to run migrations: %v", err)
+	}
+	return nil
 }
 
 func (r *UserRepositoryImpl) GetUserByID(id string) (*models.User, error) {
 	var user models.User
-	result := r.db.Where("id = ?", id).First(&user)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by ID: %w", result.Error)
+	err := r.db.First(&user, "id = ?", id).Error
+	switch {
+	case err == nil:
+		return &user, nil
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return nil, status.Error(codes.NotFound, "user not found")
+	default:
+		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
-	return &user, nil
 }
 
 func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
@@ -44,36 +49,56 @@ func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*
 	case email != "":
 		query = query.Where("email = ?", email)
 	default:
-		return nil, errors.New("username and email cannot both be empty")
+		return nil, status.Error(codes.InvalidArgument, "username and email cannot both be empty")
 	}
 
-	result := query.First(&user)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to retrieve user: %w", result.Error)
+	err := query.First(&user).Error
+	switch {
+	case err == nil:
+		return &user, nil
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return nil, status.Error(codes.NotFound, "user not found")
+	default:
+		return nil, status.Errorf(codes.Internal, "failed to retasdsadrieve user: %v", err)
 	}
-	return &user, nil
 }
 
 func (r *UserRepositoryImpl) AddUser(user *models.User) error {
-	result := r.db.Create(user)
-	return result.Error
+	err := r.db.Create(user).Error
+	switch {
+	case err == nil:
+		return nil
+	case isDuplicateError(err):
+		return status.Error(codes.AlreadyExists, "user already exists")
+	default:
+		return status.Errorf(codes.Internal, "failed to create user: %v", err)
+	}
 }
 
-func (r *UserRepositoryImpl) UpdateUserTokens(userID, HashedRefreshToken, HashedAccessToken string) error {
+func (r *UserRepositoryImpl) UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error {
 	result := r.db.Model(&models.User{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{
-			"hashed_refresh_token": HashedRefreshToken,
-			"hashed_access_token":  HashedAccessToken,
+			"hashed_refresh_token": hashedRefreshToken,
+			"hashed_access_token":  hashedAccessToken,
 		})
+
 	if result.Error != nil {
-		return fmt.Errorf("failed to update tokens: %w", result.Error)
+		return status.Errorf(codes.Internal, "failed to update tokens: %v", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found")
+		return status.Error(codes.NotFound, "user not found")
 	}
 	return nil
+}
+
+// Helper function to check for duplicate key errors
+func isDuplicateError(err error) bool {
+	switch err {
+	case gorm.ErrDuplicatedKey:
+		return true
+	// Handle other database specific duplicate errors if needed
+	default:
+		return false
+	}
 }

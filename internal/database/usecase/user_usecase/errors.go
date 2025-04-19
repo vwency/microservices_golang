@@ -1,8 +1,11 @@
 package user_usecase
 
-import "errors"
+import (
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
 
 var (
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrUserNotFound      = errors.New("user not found")
+	ErrUserNotFound      = status.Error(codes.NotFound, "user not found")
+	ErrUserAlreadyExists = status.Error(codes.AlreadyExists, "user already exists")
 )

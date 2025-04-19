@@ -1,45 +1,45 @@
 package user_usecase
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/vwency/microservices_golang/internal/database/models"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (uc *UserUsecase) GetUser(params UserParams) (*models.User, error) {
 	if params.UserID == "" && params.Username == "" && params.Email == "" {
-		return nil, errors.New("at least one search parameter must be provided")
+		return nil, status.Error(codes.InvalidArgument, "at least one search parameter must be provided")
 	}
 
-	// Поиск по ID имеет приоритет
 	if params.UserID != "" {
 		user, err := uc.repo.GetUserByID(params.UserID)
 		if err != nil {
 			uc.logger.Error("failed to get user by ID",
 				zap.String("user_id", params.UserID),
 				zap.Error(err))
-			return nil, fmt.Errorf("get user by ID failed: %w", err)
-		}
-		if user == nil {
-			return nil, ErrUserNotFound
+
+			// Пробрасываем все gRPC-ошибки как есть
+			if status.Code(err) != codes.Unknown {
+				return nil, err
+			}
+			return nil, status.Errorf(codes.Internal, "failed to get user by ID: %v", err)
 		}
 		return user, nil
 	}
 
-	// Только если ID не указан, ищем по username/email
 	user, err := uc.repo.GetUserByUsernameOrEmail(params.Username, params.Email)
 	if err != nil {
 		uc.logger.Error("failed to get user by username/email",
 			zap.String("username", params.Username),
 			zap.String("email", params.Email),
 			zap.Error(err))
-		return nil, fmt.Errorf("get user by username/email failed: %w", err)
-	}
 
-	if user == nil {
-		return nil, ErrUserNotFound
+		// Пробрасываем все gRPC-ошибки как есть
+		if status.Code(err) != codes.Unknown {
+			return nil, err
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get user by credentials: %v", err)
 	}
 
 	return user, nil
@@ -50,16 +50,21 @@ func (uc *UserUsecase) CreateUser(params CreateUserParams) error {
 		uc.logger.Warn("validation failed",
 			zap.String("username", params.Username),
 			zap.Error(err))
-		return fmt.Errorf("validation error: %w", err)
+		return status.Errorf(codes.InvalidArgument, "validation error: %v", err)
 	}
 
+	// Проверка существования пользователя
 	existingUser, err := uc.repo.GetUserByUsernameOrEmail(params.Username, params.Email)
 	if err != nil {
-		uc.logger.Error("failed to check user existence",
-			zap.String("username", params.Username),
-			zap.Error(err))
-		return fmt.Errorf("check user existence failed: %w", err)
+		// Игнорируем только NotFound ошибки
+		if status.Code(err) != codes.NotFound {
+			uc.logger.Error("failed to check user existence",
+				zap.String("username", params.Username),
+				zap.Error(err))
+			return status.Errorf(codes.Internal, "check user existence failed: %v", err)
+		}
 	}
+
 	if existingUser != nil {
 		uc.logger.Warn("user already exists",
 			zap.String("username", params.Username))
@@ -78,7 +83,12 @@ func (uc *UserUsecase) CreateUser(params CreateUserParams) error {
 		uc.logger.Error("failed to create user",
 			zap.String("username", params.Username),
 			zap.Error(err))
-		return fmt.Errorf("create user failed: %w", err)
+
+		// Сохраняем оригинальный статус ошибки
+		if status.Code(err) != codes.Unknown {
+			return err
+		}
+		return status.Errorf(codes.Internal, "failed to create user: %v", err)
 	}
 
 	uc.logger.Info("user created successfully",
@@ -91,29 +101,33 @@ func (uc *UserUsecase) UpdateTokens(params UpdateTokensParams) error {
 		uc.logger.Warn("validation failed",
 			zap.String("user_id", params.UserID),
 			zap.Error(err))
-		return fmt.Errorf("validation error: %w", err)
+		return status.Errorf(codes.InvalidArgument, "validation error: %v", err)
 	}
 
-	// Get user by ID only
-	user, err := uc.GetUser(UserParams{UserID: params.UserID})
-	if err != nil {
+	// Проверка существования пользователя
+	if _, err := uc.repo.GetUserByID(params.UserID); err != nil {
 		uc.logger.Error("failed to get user for token update",
 			zap.String("user_id", params.UserID),
 			zap.Error(err))
-		return fmt.Errorf("get user failed: %w", err)
+
+		// Пробрасываем оригинальную ошибку
+		if status.Code(err) != codes.Unknown {
+			return err
+		}
+		return status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
 
-	if user == nil {
-		uc.logger.Warn("user not found for token update",
-			zap.String("user_id", params.UserID))
-		return ErrUserNotFound
-	}
-
+	// Обновление токенов
 	if err := uc.repo.UpdateUserTokens(params.UserID, params.HashedRefreshToken, params.HashedAccessToken); err != nil {
 		uc.logger.Error("failed to update tokens",
 			zap.String("user_id", params.UserID),
 			zap.Error(err))
-		return fmt.Errorf("update tokens failed: %w", err)
+
+		// Пробрасываем оригинальную ошибку
+		if status.Code(err) != codes.Unknown {
+			return err
+		}
+		return status.Errorf(codes.Internal, "failed to update tokens: %v", err)
 	}
 
 	uc.logger.Info("tokens updated successfully",

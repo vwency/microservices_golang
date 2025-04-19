@@ -27,6 +27,7 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 		h.logger.Warn("empty request parameters")
 		return nil, status.Error(codes.InvalidArgument, "username or email must be provided")
 	}
+
 	params := user_usecase.UserParams{
 		Username: req.GetUsername(),
 		Email:    req.GetEmail(),
@@ -34,21 +35,22 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 
 	user, err := h.uc.GetUser(params)
 	if err != nil {
+		// Проверяем, является ли ошибка NotFound
+		if status.Code(err) == codes.NotFound {
+			h.logger.Info("user not found",
+				zap.String("username", req.GetUsername()),
+				zap.String("email", req.GetEmail()))
+			return &pb.GetUserResponse{
+				Found:   false,
+				Message: "User not found",
+			}, nil
+		}
+
 		h.logger.Error("failed to get user",
 			zap.String("username", req.GetUsername()),
 			zap.String("email", req.GetEmail()),
 			zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to retrieve user")
-	}
-
-	if user == nil {
-		h.logger.Info("user not found",
-			zap.String("username", req.GetUsername()),
-			zap.String("email", req.GetEmail()))
-		return &pb.GetUserResponse{
-			Found:   false,
-			Message: "User not found",
-		}, nil
+		return nil, err // Пробрасываем оригинальную ошибку, так как она уже имеет статус код
 	}
 
 	email := ""
@@ -56,9 +58,8 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 		email = *user.Email
 	}
 
-	// Convert UUID to string
 	userID := ""
-	if user.ID != [16]byte{} { // Check if UUID is not zero value
+	if user.ID != [16]byte{} {
 		userID = user.ID.String()
 	}
 
