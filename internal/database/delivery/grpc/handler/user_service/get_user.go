@@ -50,7 +50,7 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 			zap.String("username", req.GetUsername()),
 			zap.String("email", req.GetEmail()),
 			zap.Error(err))
-		return nil, err // Пробрасываем оригинальную ошибку, так как она уже имеет статус код
+		return nil, err
 	}
 
 	email := ""

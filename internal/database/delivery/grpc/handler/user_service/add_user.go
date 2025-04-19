@@ -46,6 +46,11 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *databasev1.AddUserReq
 			zap.String("username", req.GetUsername()),
 			zap.Error(err))
 
+		st, ok := status.FromError(err)
+		if ok {
+			return nil, st.Err()
+		}
+
 		if errors.Is(err, user_usecase.ErrUserAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
 		}
