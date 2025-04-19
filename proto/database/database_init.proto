@@ -37,11 +37,11 @@ message GetUserResponse {
   string message = 8;
 }
 
-message GetUserByIDRequest { // New message for getting user by user_id
+message GetUserByIDRequest {// New message for getting user by user_id
   string user_id = 1;
 }
 
-message GetUserByIDResponse { // New response message for getting user by user_id
+message GetUserByIDResponse {// New response message for getting user by user_id
   bool found = 1;
   string user_id = 2;
   string username = 3;

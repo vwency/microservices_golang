@@ -12,7 +12,7 @@ tasks:
   run-auth:
     desc: Run hello_service
     cmds:
-    - go run ./cmd/auth_service
+      - go run ./cmd/auth_service
 
   run-database:
     desc: Run hello_service
@@ -28,7 +28,7 @@ tasks:
     desc: Generate gRPC code from proto
     cmds:
       - protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./proto/**/*.proto
-     
+
 
   generate-gomod:
     desc: Generate go.mod preserving requirements
@@ -36,7 +36,7 @@ tasks:
       - chmod +x ./generate_gomod.sh
       - ./generate_gomod.sh
       - go mod edit -fmt
-      
+
   update-deps:
     desc: Update dependencies list
     cmds:

@@ -1,16 +1,16 @@
 app:
-    env: dev
-    port: "50058"
-    log_level: debug
-    service_name: "gateway"
+  env: dev
+  port: "50058"
+  log_level: debug
+  service_name: "gateway"
 
 auth_service:
   url: "auth_service:50056"
 
 jwt:
   secret: "your_secret_key"
-  access_token_ttl: "3600s" 
-  refresh_token_ttl: "7200s" 
+  access_token_ttl: "3600s"
+  refresh_token_ttl: "7200s"
 
 database_service:
   url: "database_service:50052"

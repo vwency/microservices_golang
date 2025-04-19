@@ -29,14 +29,14 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [debug, prometheus]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ debug, prometheus ]
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [debug, otlp, zipkin]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ debug, otlp, zipkin ]
     logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [debug]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ debug ]
