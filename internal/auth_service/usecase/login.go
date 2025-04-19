@@ -83,7 +83,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	roles := []string{"user"}
 
 	// Generate new tokens
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(getUserResp.UserId, roles)
+	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(getUserResp.Username, roles)
 	if err != nil {
 		uc.logger.Error("Access token generation failed",
 			zap.String("user_id", getUserResp.UserId),
@@ -91,7 +91,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, fmt.Errorf("%w: access token", ErrTokenGeneration)
 	}
 
-	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(getUserResp.UserId, roles)
+	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(getUserResp.Username, roles)
 	if err != nil {
 		uc.logger.Error("Refresh token generation failed",
 			zap.String("user_id", getUserResp.UserId),
@@ -100,7 +100,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	}
 
 	// Hash tokens before storing
-	hashedRefreshToken, err := authutils.GenerateFromPassword(getUserResp.UserId, refreshToken, nil)
+	hashedRefreshToken, err := authutils.GenerateFromPassword(tokenHashPepper, refreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token",
 			zap.String("user_id", getUserResp.UserId),
@@ -108,7 +108,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, fmt.Errorf("failed to secure tokens: %w", err)
 	}
 
-	hashedAccessToken, err := authutils.GenerateFromPassword(getUserResp.UserId, accessToken, nil)
+	hashedAccessToken, err := authutils.GenerateFromPassword(tokenHashPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token",
 			zap.String("user_id", getUserResp.UserId),

@@ -134,3 +134,25 @@ func (uc *UserUsecase) UpdateTokens(params UpdateTokensParams) error {
 		zap.String("user_id", params.UserID))
 	return nil
 }
+
+func (uc *UserUsecase) GetUserByID(userID string) (*models.User, error) {
+	// Ensure that the user_id is provided
+	if userID == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be provided")
+	}
+	user, err := uc.repo.GetUserByID(userID)
+	if err != nil {
+		uc.logger.Error("failed to get user by ID",
+			zap.String("user_id", userID),
+			zap.Error(err))
+
+		// Propagate the error, if it's a known gRPC error, pass it as is
+		if status.Code(err) != codes.Unknown {
+			return nil, err
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get user by ID: %v", err)
+	}
+
+	// Successfully retrieved user
+	return user, nil
+}

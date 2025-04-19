@@ -7,6 +7,7 @@ option go_package = "github.com/vwency/microservices_golang/proto/database_init"
 service DatabaseInitService {
   rpc InitDatabase (InitRequest) returns (InitResponse);
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc GetUserByID (GetUserByIDRequest) returns (GetUserByIDResponse); // New RPC method to get user by ID
   rpc AddUser (AddUserRequest) returns (AddUserResponse);
   rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
 }
@@ -21,15 +22,29 @@ message InitResponse {
 }
 
 message GetUserRequest {
-  string user_id = 1;
-  string username = 2;
-  string email = 3;
+  string username = 1;
+  string email = 2;
 }
 
 message GetUserResponse {
   bool found = 1;
   string user_id = 2;
-  string username = 3; 
+  string username = 3;
+  string email = 4;
+  string hashed_password = 5;
+  string hashed_refresh_token = 6;
+  string hashed_access_token = 7;
+  string message = 8;
+}
+
+message GetUserByIDRequest { // New message for getting user by user_id
+  string user_id = 1;
+}
+
+message GetUserByIDResponse { // New response message for getting user by user_id
+  bool found = 1;
+  string user_id = 2;
+  string username = 3;
   string email = 4;
   string hashed_password = 5;
   string hashed_refresh_token = 6;

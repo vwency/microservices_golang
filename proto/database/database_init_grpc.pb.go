@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	DatabaseInitService_InitDatabase_FullMethodName = "/database_init.DatabaseInitService/InitDatabase"
 	DatabaseInitService_GetUser_FullMethodName      = "/database_init.DatabaseInitService/GetUser"
+	DatabaseInitService_GetUserByID_FullMethodName  = "/database_init.DatabaseInitService/GetUserByID"
 	DatabaseInitService_AddUser_FullMethodName      = "/database_init.DatabaseInitService/AddUser"
 	DatabaseInitService_UpdateUser_FullMethodName   = "/database_init.DatabaseInitService/UpdateUser"
 )
@@ -31,6 +32,7 @@ const (
 type DatabaseInitServiceClient interface {
 	InitDatabase(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*InitResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetUserByID(ctx context.Context, in *GetUserByIDRequest, opts ...grpc.CallOption) (*GetUserByIDResponse, error)
 	AddUser(ctx context.Context, in *AddUserRequest, opts ...grpc.CallOption) (*AddUserResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 }
@@ -63,6 +65,16 @@ func (c *databaseInitServiceClient) GetUser(ctx context.Context, in *GetUserRequ
 	return out, nil
 }
 
+func (c *databaseInitServiceClient) GetUserByID(ctx context.Context, in *GetUserByIDRequest, opts ...grpc.CallOption) (*GetUserByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserByIDResponse)
+	err := c.cc.Invoke(ctx, DatabaseInitService_GetUserByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *databaseInitServiceClient) AddUser(ctx context.Context, in *AddUserRequest, opts ...grpc.CallOption) (*AddUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddUserResponse)
@@ -89,6 +101,7 @@ func (c *databaseInitServiceClient) UpdateUser(ctx context.Context, in *UpdateUs
 type DatabaseInitServiceServer interface {
 	InitDatabase(context.Context, *InitRequest) (*InitResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetUserByID(context.Context, *GetUserByIDRequest) (*GetUserByIDResponse, error)
 	AddUser(context.Context, *AddUserRequest) (*AddUserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	mustEmbedUnimplementedDatabaseInitServiceServer()
@@ -106,6 +119,9 @@ func (UnimplementedDatabaseInitServiceServer) InitDatabase(context.Context, *Ini
 }
 func (UnimplementedDatabaseInitServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedDatabaseInitServiceServer) GetUserByID(context.Context, *GetUserByIDRequest) (*GetUserByIDResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserByID not implemented")
 }
 func (UnimplementedDatabaseInitServiceServer) AddUser(context.Context, *AddUserRequest) (*AddUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddUser not implemented")
@@ -170,6 +186,24 @@ func _DatabaseInitService_GetUser_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DatabaseInitService_GetUserByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseInitServiceServer).GetUserByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DatabaseInitService_GetUserByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseInitServiceServer).GetUserByID(ctx, req.(*GetUserByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DatabaseInitService_AddUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddUserRequest)
 	if err := dec(in); err != nil {
@@ -220,6 +254,10 @@ var DatabaseInitService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _DatabaseInitService_GetUser_Handler,
+		},
+		{
+			MethodName: "GetUserByID",
+			Handler:    _DatabaseInitService_GetUserByID_Handler,
 		},
 		{
 			MethodName: "AddUser",

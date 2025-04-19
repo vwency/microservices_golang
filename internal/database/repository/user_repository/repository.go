@@ -7,5 +7,5 @@ type UserRepository interface {
 	GetUserByID(id string) (*models.User, error)
 	GetUserByUsernameOrEmail(username, email string) (*models.User, error)
 	AddUser(user *models.User) error
-	UpdateUserTokens(userID, HashedRefreshToken, HashedAccessToken string) error
+	UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error
 }

@@ -17,6 +17,7 @@ func NewUserRepository(db *gorm.DB) *UserRepositoryImpl {
 	return &UserRepositoryImpl{db: db}
 }
 
+// RunMigrations runs the database migrations for the User model.
 func (r *UserRepositoryImpl) RunMigrations() error {
 	if err := r.db.AutoMigrate(&models.User{}); err != nil {
 		return status.Errorf(codes.Internal, "failed to run migrations: %v", err)
@@ -24,6 +25,7 @@ func (r *UserRepositoryImpl) RunMigrations() error {
 	return nil
 }
 
+// GetUserByID retrieves a user by their ID from the database.
 func (r *UserRepositoryImpl) GetUserByID(id string) (*models.User, error) {
 	var user models.User
 	err := r.db.First(&user, "id = ?", id).Error
@@ -37,6 +39,7 @@ func (r *UserRepositoryImpl) GetUserByID(id string) (*models.User, error) {
 	}
 }
 
+// GetUserByUsernameOrEmail retrieves a user by their username or email.
 func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
 	var user models.User
 	query := r.db.Model(&models.User{})
@@ -59,10 +62,11 @@ func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		return nil, status.Error(codes.NotFound, "user not found")
 	default:
-		return nil, status.Errorf(codes.Internal, "failed to retasdsadrieve user: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user: %v", err)
 	}
 }
 
+// AddUser adds a new user to the database.
 func (r *UserRepositoryImpl) AddUser(user *models.User) error {
 	err := r.db.Create(user).Error
 	switch {
@@ -75,6 +79,7 @@ func (r *UserRepositoryImpl) AddUser(user *models.User) error {
 	}
 }
 
+// UpdateUserTokens updates the refresh and access tokens for a user.
 func (r *UserRepositoryImpl) UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error {
 	result := r.db.Model(&models.User{}).
 		Where("id = ?", userID).
