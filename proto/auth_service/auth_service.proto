@@ -38,6 +38,7 @@ message ValidateResponse {
 
 message LogoutRequest {
   string username = 1;
+  string access_token = 2;
 }
 
 message LogoutResponse {

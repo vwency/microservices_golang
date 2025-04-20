@@ -42,9 +42,10 @@ func (c *AuthServiceClient) Login(ctx context.Context, username, password string
 	return c.Client.Login(ctx, req)
 }
 
-func (c *AuthServiceClient) Logout(ctx context.Context, username string) (*auth_service.LogoutResponse, error) {
+func (c *AuthServiceClient) Logout(ctx context.Context, username, accessToken string) (*auth_service.LogoutResponse, error) {
 	req := &auth_service.LogoutRequest{
-		Username: username,
+		Username:    username,
+		AccessToken: accessToken,
 	}
 	return c.Client.Logout(ctx, req)
 }

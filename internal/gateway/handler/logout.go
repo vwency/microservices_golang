@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/vwency/microservices_golang/internal/gateway/service"
 )
@@ -24,7 +25,29 @@ func LogoutHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 			return
 		}
 
-		resp, err := authService.Logout(r.Context(), logoutReq.Username)
+		// Читаем access token из Authorization Header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			http.Error(w, "Missing or invalid Authorization header", http.StatusUnauthorized)
+			return
+		}
+		accessToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Проверяем валидность токена через /validate
+		validateResp, err := authService.Validate(r.Context(), accessToken)
+		if err != nil || !validateResp.Valid {
+			http.Error(w, "Invalid or expired access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Проверяем, совпадает ли username из токена с переданным username
+		if validateResp.UserId != logoutReq.Username {
+			http.Error(w, "User ID in token does not match provided username", http.StatusUnauthorized)
+			return
+		}
+
+		// Выполняем разлогинивание
+		resp, err := authService.Logout(r.Context(), logoutReq.Username, accessToken)
 		if err != nil {
 			http.Error(w, "Failed to logout", http.StatusInternalServerError)
 			return

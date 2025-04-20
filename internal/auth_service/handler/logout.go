@@ -24,9 +24,14 @@ func (h *LogoutHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
 
-	success, err := h.usecase.Logout(ctx, req.Username)
+	if req.AccessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "access_token is required")
+	}
+
+	// Perform the logout logic through the usecase
+	success, err := h.usecase.Logout(ctx, req.Username, req.AccessToken)
 	if err != nil {
-		h.logger.Error("Logout failed", zap.Error(err))
+		h.logger.Error("Logout failed", zap.String("username", req.Username), zap.Error(err))
 		return nil, status.Errorf(codes.Internal, "logout failed: %v", err)
 	}
 
