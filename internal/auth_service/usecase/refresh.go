@@ -73,7 +73,7 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*Token
 		return nil, fmt.Errorf("%w: refresh token", ErrTokenGeneration)
 	}
 
-	hashedAccessToken, err := authutils.GenerateFromPassword(uc.tokenPepper, accessToken, nil)
+	hashedAccessToken, err := authutils.GenHash(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token",
 			zap.String("user_id", claims.UserID),
@@ -82,7 +82,7 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*Token
 		return nil, fmt.Errorf("failed to hash access token: %w", err)
 	}
 
-	hashedRefreshToken, err := authutils.GenerateFromPassword(uc.tokenPepper, newRefreshToken, nil)
+	hashedRefreshToken, err := authutils.GenHash(uc.tokenPepper, newRefreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token",
 			zap.String("user_id", claims.UserID),

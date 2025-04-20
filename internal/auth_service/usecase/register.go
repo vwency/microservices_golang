@@ -15,7 +15,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
-	hashedPassword, err := authutils.GenerateFromPassword(username, password, nil)
+	hashedPassword, err := authutils.GenHash(username, password, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash password", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash password: %v", err)
@@ -35,14 +35,13 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
-	// ✅ Используем статичный "pepper" вместо username
-	hashedAccessToken, err := authutils.GenerateFromPassword(uc.tokenPepper, accessToken, nil)
+	hashedAccessToken, err := authutils.GenHash(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash access token: %v", err)
 	}
 
-	hashedRefreshToken, err := authutils.GenerateFromPassword(uc.tokenPepper, refreshToken, nil)
+	hashedRefreshToken, err := authutils.GenHash(uc.tokenPepper, refreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)

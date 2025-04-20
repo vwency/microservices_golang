@@ -32,25 +32,20 @@ var DefaultArgon2Params = &Argon2Params{
 	KeyLength:   32,
 }
 
-// GenerateFromPassword создает хэш пароля с использованием Argon2id, включая username как pepper
-func GenerateFromPassword(username, password string, p *Argon2Params) (encodedHash string, err error) {
+func GenHash(username, password string, p *Argon2Params) (encodedHash string, err error) {
 	if p == nil {
 		p = DefaultArgon2Params
 	}
 
-	// Генерируем криптографически безопасную соль
 	salt := make([]byte, p.SaltLength)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
 
-	// Создаем "pepper" из username (можно добавить дополнительную обработку)
 	pepper := []byte(username)
 
-	// Комбинируем пароль и pepper перед хэшированием
 	pepperedPassword := append([]byte(password), pepper...)
 
-	// Генерируем хэш с использованием Argon2
 	hash := argon2.IDKey(
 		pepperedPassword,
 		salt,
@@ -60,11 +55,9 @@ func GenerateFromPassword(username, password string, p *Argon2Params) (encodedHa
 		p.KeyLength,
 	)
 
-	// Кодируем соль и хэш в base64
 	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
 	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
 
-	// Формируем строку хэша в стандартном формате
 	encodedHash = fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version,
 		p.Memory,
@@ -77,29 +70,22 @@ func GenerateFromPassword(username, password string, p *Argon2Params) (encodedHa
 	return encodedHash, nil
 }
 
-// ComparePasswordAndHash сравнивает пароль с хранимым хэшем, учитывая username как pepper
-func ComparePasswordAndHash(username, password, encodedHash string) (match bool, err error) {
-	// Извлекаем параметры, соль и хэш из строки
+func ComparePasswordAndHash(key, password, encodedHash string) (match bool, err error) {
 	p, salt, hash, err := decodeHash(encodedHash)
 	if err != nil {
 		return false, err
 	}
-
-	// Создаем pepper из username
-	pepper := []byte(username)
+	pepper := []byte(key)
 	pepperedPassword := append([]byte(password), pepper...)
 
-	// Генерируем хэш для сравнения
 	otherHash := argon2.IDKey(pepperedPassword, salt, p.Iterations, p.Memory, p.Parallelism, p.KeyLength)
 
-	// Сравниваем хэши
 	if subtle.ConstantTimeCompare(hash, otherHash) == 1 {
 		return true, nil
 	}
 	return false, nil
 }
 
-// decodeHash остается без изменений
 func decodeHash(encodedHash string) (p *Argon2Params, salt, hash []byte, err error) {
 	vals := strings.Split(encodedHash, "$")
 	if len(vals) != 6 {
