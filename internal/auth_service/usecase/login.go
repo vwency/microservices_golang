@@ -100,7 +100,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	}
 
 	// Hash tokens before storing
-	hashedRefreshToken, err := authutils.GenerateFromPassword(tokenHashPepper, refreshToken, nil)
+	hashedRefreshToken, err := authutils.GenerateFromPassword(uc.tokenPepper, refreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token",
 			zap.String("user_id", getUserResp.UserId),
@@ -108,7 +108,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, fmt.Errorf("failed to secure tokens: %w", err)
 	}
 
-	hashedAccessToken, err := authutils.GenerateFromPassword(tokenHashPepper, accessToken, nil)
+	hashedAccessToken, err := authutils.GenerateFromPassword(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token",
 			zap.String("user_id", getUserResp.UserId),

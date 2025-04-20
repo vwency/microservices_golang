@@ -54,12 +54,9 @@ func main() {
 
 	dbClient := databasev1.NewDatabaseInitServiceClient(dbConn)
 
-	authUsecase := auth_service_usecase.NewAuthUsecase(dbClient, jwtManager, zapLogger)
+	authUsecase := auth_service_usecase.NewAuthUsecase(dbClient, jwtManager, zapLogger, Cfg.Jwt.HashPepper)
 
-	refreshUsecase := auth_service_usecase.NewRefreshUsecase(dbClient, jwtManager, zapLogger)
-	logoutUsecase := auth_service_usecase.NewLogoutUsecase(dbClient, jwtManager, zapLogger)
-
-	authHandler := auth_service_handler.NewServer(authUsecase, refreshUsecase, logoutUsecase, zapLogger)
+	authHandler := auth_service_handler.NewServer(authUsecase, zapLogger)
 
 	addr := fmt.Sprintf(":%s", Cfg.App.Port)
 	lis, err := net.Listen("tcp", addr)

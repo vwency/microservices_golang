@@ -4,27 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vwency/microservices_golang/pkg/jwt"
 	databasev1 "github.com/vwency/microservices_golang/proto/database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
 
-type RefreshUsecase struct {
-	dbClient   databasev1.DatabaseInitServiceClient
-	jwtManager *jwt.JWTManager
-	logger     *zap.Logger
-}
-
-func NewRefreshUsecase(dbClient databasev1.DatabaseInitServiceClient, jwtManager *jwt.JWTManager, logger *zap.Logger) *RefreshUsecase {
-	return &RefreshUsecase{
-		dbClient:   dbClient,
-		jwtManager: jwtManager,
-		logger:     logger,
-	}
-}
-
-func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*TokenPair, error) {
+func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*TokenPair, error) {
 	ip := getIPFromContext(ctx)
 	uc.logger.Info("Attempting token refresh",
 		zap.String("ip", ip))
@@ -53,7 +38,7 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, ErrUserNotFound
 	}
 
-	match, err := authutils.ComparePasswordAndHash(tokenHashPepper, refreshToken, getUserResp.HashedRefreshToken)
+	match, err := authutils.ComparePasswordAndHash(uc.tokenPepper, refreshToken, getUserResp.HashedRefreshToken)
 	if err != nil {
 		uc.logger.Error("Token comparison failed",
 			zap.String("user_id", claims.UserID),
@@ -69,7 +54,7 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, ErrInvalidToken
 	}
 
-	// Generate new access token
+	// Generate new tokens
 	accessToken, accessExpiresAt, err := uc.jwtManager.GenerateAccessToken(claims.UserID, claims.Roles)
 	if err != nil {
 		uc.logger.Error("Access token generation failed",
@@ -79,7 +64,6 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, fmt.Errorf("%w: access token", ErrTokenGeneration)
 	}
 
-	// Generate new refresh token
 	newRefreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(claims.UserID, claims.Roles)
 	if err != nil {
 		uc.logger.Error("Refresh token generation failed",
@@ -89,8 +73,7 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, fmt.Errorf("%w: refresh token", ErrTokenGeneration)
 	}
 
-	// Hash tokens
-	hashedAccessToken, err := authutils.GenerateFromPassword(tokenHashPepper, accessToken, nil)
+	hashedAccessToken, err := authutils.GenerateFromPassword(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token",
 			zap.String("user_id", claims.UserID),
@@ -99,7 +82,7 @@ func (uc *RefreshUsecase) Refresh(ctx context.Context, refreshToken string) (*To
 		return nil, fmt.Errorf("failed to hash access token: %w", err)
 	}
 
-	hashedRefreshToken, err := authutils.GenerateFromPassword(tokenHashPepper, newRefreshToken, nil)
+	hashedRefreshToken, err := authutils.GenerateFromPassword(uc.tokenPepper, newRefreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token",
 			zap.String("user_id", claims.UserID),

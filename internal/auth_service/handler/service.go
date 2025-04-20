@@ -20,16 +20,14 @@ type Server struct {
 
 func NewServer(
 	authUsecase *auth_service_usecase.AuthUsecase,
-	refreshUsecase *auth_service_usecase.RefreshUsecase,
-	logoutUsecase *auth_service_usecase.LogoutUsecase,
 	logger *zap.Logger,
 ) *Server {
 	return &Server{
 		loginHandler:    NewLoginHandler(authUsecase, logger),
 		registerHandler: NewRegisterHandler(authUsecase, logger),
 		validateHandler: NewValidateHandler(authUsecase, logger),
-		refreshHandler:  NewRefreshHandler(refreshUsecase, logger),
-		logoutHandler:   NewLogoutHandler(logoutUsecase, logger),
+		refreshHandler:  NewRefreshHandler(authUsecase, logger),
+		logoutHandler:   NewLogoutHandler(authUsecase, logger),
 	}
 }
 

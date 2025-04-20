@@ -6,18 +6,23 @@ import (
 	"go.uber.org/zap"
 )
 
-const tokenHashPepper = "static-token-hash-secret"
-
 type AuthUsecase struct {
-	dbClient   databasev1.DatabaseInitServiceClient
-	jwtManager *jwt.JWTManager
-	logger     *zap.Logger
+	dbClient    databasev1.DatabaseInitServiceClient
+	jwtManager  *jwt.JWTManager
+	logger      *zap.Logger
+	tokenPepper string
 }
 
-func NewAuthUsecase(dbClient databasev1.DatabaseInitServiceClient, jwtManager *jwt.JWTManager, logger *zap.Logger) *AuthUsecase {
+func NewAuthUsecase(
+	dbClient databasev1.DatabaseInitServiceClient,
+	jwtManager *jwt.JWTManager,
+	logger *zap.Logger,
+	tokenPepper string,
+) *AuthUsecase {
 	return &AuthUsecase{
-		dbClient:   dbClient,
-		jwtManager: jwtManager,
-		logger:     logger,
+		dbClient:    dbClient,
+		jwtManager:  jwtManager,
+		logger:      logger,
+		tokenPepper: tokenPepper,
 	}
 }

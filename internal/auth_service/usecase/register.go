@@ -36,13 +36,13 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 	}
 
 	// ✅ Используем статичный "pepper" вместо username
-	hashedAccessToken, err := authutils.GenerateFromPassword(tokenHashPepper, accessToken, nil)
+	hashedAccessToken, err := authutils.GenerateFromPassword(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash access token: %v", err)
 	}
 
-	hashedRefreshToken, err := authutils.GenerateFromPassword(tokenHashPepper, refreshToken, nil)
+	hashedRefreshToken, err := authutils.GenerateFromPassword(uc.tokenPepper, refreshToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)

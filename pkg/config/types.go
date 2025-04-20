@@ -17,6 +17,7 @@ type ServiceConfig struct {
 		Secret          string `mapstructure:"secret"`
 		AccessTokenTtl  string `mapstructure:"access_token_ttl"`
 		RefreshTokenTtl string `mapstructure:"refresh_token_ttl"`
+		HashPepper      string `mapstructure:"hash_pepper"`
 	} `mapstructure:"jwt"`
 
 	AuthService struct {

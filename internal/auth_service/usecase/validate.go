@@ -36,7 +36,7 @@ func (uc *AuthUsecase) ValidateAccessToken(ctx context.Context, token string) (*
 		return nil, errors.New("user not found")
 	}
 
-	match, err := authutils.ComparePasswordAndHash(tokenHashPepper, token, getUserResp.HashedAccessToken)
+	match, err := authutils.ComparePasswordAndHash(uc.tokenPepper, token, getUserResp.HashedAccessToken)
 	if err != nil {
 		uc.logger.Error("Failed to compare token hashes", zap.Error(err), zap.String("userID", claims.UserID))
 		return nil, err

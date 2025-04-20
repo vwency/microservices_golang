@@ -11,12 +11,15 @@ import (
 )
 
 type RefreshHandler struct {
-	refreshUsecase *auth_service_usecase.RefreshUsecase
-	logger         *zap.Logger
+	authUsecase *auth_service_usecase.AuthUsecase
+	logger      *zap.Logger
 }
 
-func NewRefreshHandler(refreshUsecase *auth_service_usecase.RefreshUsecase, logger *zap.Logger) *RefreshHandler {
-	return &RefreshHandler{refreshUsecase: refreshUsecase, logger: logger}
+func NewRefreshHandler(authUsecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *RefreshHandler {
+	return &RefreshHandler{
+		authUsecase: authUsecase,
+		logger:      logger,
+	}
 }
 
 func (h *RefreshHandler) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
@@ -24,7 +27,7 @@ func (h *RefreshHandler) Refresh(ctx context.Context, req *authv1.RefreshRequest
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
 
-	tokens, err := h.refreshUsecase.Refresh(ctx, req.RefreshToken)
+	tokens, err := h.authUsecase.Refresh(ctx, req.RefreshToken)
 	if err != nil {
 		h.logger.Error("Refresh failed", zap.Error(err))
 		return nil, status.Errorf(codes.Internal, "refresh failed: %v", err)

@@ -11,11 +11,11 @@ import (
 )
 
 type LogoutHandler struct {
-	usecase *auth_service_usecase.LogoutUsecase
+	usecase *auth_service_usecase.AuthUsecase
 	logger  *zap.Logger
 }
 
-func NewLogoutHandler(usecase *auth_service_usecase.LogoutUsecase, logger *zap.Logger) *LogoutHandler {
+func NewLogoutHandler(usecase *auth_service_usecase.AuthUsecase, logger *zap.Logger) *LogoutHandler {
 	return &LogoutHandler{usecase: usecase, logger: logger}
 }
 
