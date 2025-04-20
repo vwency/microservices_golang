@@ -56,17 +56,16 @@ services:
       app_network:
         ipv4_address: 192.168.1.4
 
-
   gateway:
     build:
       context: .
       dockerfile: ./deploy/gateway/Dockerfile
     container_name: gateway
-    depends_on:
-      auth_service:
-        condition: service_started
-      database_service:
-        condition: service_healthy
+    # depends_on:
+    #   auth_service:
+    #     condition: service_started
+    #   database_service:
+    #     condition: service_healthy
     environment:
       PORT: 50051
       LOG_LEVEL: debug
@@ -76,6 +75,24 @@ services:
     networks:
       app_network:
         ipv4_address: 192.168.1.5
+
+  hello_service:
+    build:
+      context: .
+      dockerfile: ./deploy/hello_service/Dockerfile
+    container_name: hello_service
+    depends_on:
+      auth_service:
+        condition: service_started
+      database_service:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+    ports:
+      - "50069:50069"
+    networks:
+      app_network:
+        ipv4_address: 192.168.1.6
 
 networks:
   app_network:
