@@ -61,11 +61,11 @@ services:
       context: .
       dockerfile: ./deploy/gateway/Dockerfile
     container_name: gateway
-    # depends_on:
-    #   auth_service:
-    #     condition: service_started
-    #   database_service:
-    #     condition: service_healthy
+    depends_on:
+      auth_service:
+        condition: service_started
+      database_service:
+        condition: service_healthy
     environment:
       PORT: 50051
       LOG_LEVEL: debug

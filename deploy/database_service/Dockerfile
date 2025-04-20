@@ -13,7 +13,11 @@
     # --- Final stage ---
     FROM alpine:3.19
     # Устанавливаем зависимости
-    RUN apk add --no-cache ca-certificates postgresql-client
+    RUN apk add --no-cache ca-certificates postgresql-client bash
+    
+    # Добавляем wait-for-it скрипт
+    ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /wait-for-it.sh
+    RUN chmod +x /wait-for-it.sh
     
     # Копируем бинарник
     COPY --from=builder /bin/database_service /bin/database_service
@@ -25,13 +29,9 @@
     ENV ENV=dev \
         PORT=50052 \
         LOG_LEVEL=debug \
-        DATABASE_URL="postgres://postgres:password@postgres:5438/pure?sslmode=disable"
+        DATABASE_URL="postgres://postgres:password@postgres:5432/pure?sslmode=disable"
     
     WORKDIR /app
     
-    # Healthcheck
-    HEALTHCHECK --interval=30s --timeout=3s CMD pg_isready -d "$DATABASE_URL" || exit 1
-    
     # Запуск
-    ENTRYPOINT ["/bin/database_service"]
-    
+    ENTRYPOINT ["/bin/sh", "-c", "/wait-for-it.sh postgres:5432 -t 6 -- /bin/database_service"]

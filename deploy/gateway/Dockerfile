@@ -2,37 +2,32 @@
     FROM golang:1.24.2-alpine AS builder
     WORKDIR /app
     
-    # Загрузка зависимостей
     COPY go.mod go.sum ./
     RUN go mod download
     
-    # Копируем исходники и билдим
     COPY . .
     RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/gateway cmd/gateway/main.go
     
-    # --- Final stage ---
     FROM alpine:3.19
-    # Устанавливаем зависимости
-    RUN apk add --no-cache ca-certificates
+    RUN apk add --no-cache ca-certificates bash postgresql-client
     
-    # Копируем бинарник
+    ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /wait-for-it.sh
+    RUN chmod +x /wait-for-it.sh
+    
     COPY --from=builder /bin/gateway /bin/gateway
     
-    # Копируем конфиги
     COPY ./config/gateway /app/config/gateway
     
     # Runtime переменные
     ENV ENV=dev \
         PORT=50058 \
         LOG_LEVEL=debug \
-        AUTH_SERVICE_URL="localhost:50058" \
-        DATABASE_URL="postgres://postgres:password@postgres:5438/pure?sslmode=disable"
+        AUTH_SERVICE_URL="auth_service:50056" \  # Исправлено с localhost на имя сервиса
+        DATABASE_URL="postgres://postgres:password@postgres:5432/pure?sslmode=disable"  # Исправлен порт 5438 → 5432
     
     WORKDIR /app
     
     # Healthcheck
     HEALTHCHECK --interval=30s --timeout=3s CMD nc -zv localhost $PORT || exit 1
     
-    # Запуск
-    ENTRYPOINT ["/bin/gateway"]
-    
+    ENTRYPOINT ["/bin/sh", "-c", "/wait-for-it.sh auth_service:50056 -t 6 -- /wait-for-it.sh postgres:5432 -t 30 -- /bin/gateway"]
