@@ -15,5 +15,5 @@ auth_service:
   url: "localhost:50056"
 
 
-database_service:
+user_database:
   url: "localhost:50052"

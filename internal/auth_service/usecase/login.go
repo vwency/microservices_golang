@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
@@ -46,12 +46,11 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
-	// Get user from database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
 		Username: username,
 	})
 	if err != nil {
-		uc.logger.Error("Database operation failed",
+		uc.logger.Error("UserDatabase operation failed",
 			zap.String("username", username),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to get user: %w", err)

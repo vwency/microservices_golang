@@ -1,0 +1,9 @@
+app:
+  env: "dev"
+  port: "50052"
+  log_level: "debug"
+  service_name: "database_init_service"
+
+user_database:
+  url: "postgres://admin:secret@localhost:5671/mydb"
+  migrations_path: "./deploy/migrations"

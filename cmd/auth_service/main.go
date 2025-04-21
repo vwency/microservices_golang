@@ -10,7 +10,7 @@ import (
 	auth_service_usecase "github.com/vwency/microservices_golang/internal/auth_service/usecase"
 	"github.com/vwency/microservices_golang/pkg/config"
 	"github.com/vwency/microservices_golang/pkg/jwt"
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -46,9 +46,9 @@ func main() {
 		zapLogger.Fatal("failed to create JWT manager", zap.Error(err))
 	}
 
-	dbConn, err := grpc.Dial(Cfg.DatabaseService.URL, grpc.WithInsecure())
+	dbConn, err := grpc.Dial(Cfg.UserDatabase.URL, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("failed to connect to database_service: %v", err)
+		log.Fatalf("failed to connect to user_database: %v", err)
 	}
 	defer dbConn.Close()
 

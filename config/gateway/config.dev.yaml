@@ -12,5 +12,5 @@ jwt:
   access_token_ttl: "3600s"
   refresh_token_ttl: "7200s"
 
-database_service:
-  url: "database_service:50052"
+user_database:
+  url: "user_database:50052"

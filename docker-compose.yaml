@@ -19,11 +19,11 @@ services:
       app_network:
         ipv4_address: 192.168.1.2
 
-  database_service:
+  user_database:
     build:
       context: .
-      dockerfile: ./deploy/database_service/Dockerfile
-    container_name: database_service
+      dockerfile: ./deploy/user_database/Dockerfile
+    container_name: user_database
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
       dockerfile: ./deploy/auth_service/Dockerfile
     container_name: auth_service
     depends_on:
-      database_service:
+      user_database:
         condition: service_started
     environment:
       PORT: 50056
@@ -64,7 +64,7 @@ services:
     depends_on:
       auth_service:
         condition: service_started
-      database_service:
+      user_database:
         condition: service_healthy
     environment:
       PORT: 50051
@@ -84,7 +84,7 @@ services:
     depends_on:
       auth_service:
         condition: service_started
-      database_service:
+      user_database:
         condition: service_healthy
       gateway:
         condition: service_started

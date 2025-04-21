@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
@@ -24,7 +24,7 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*Token
 
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: claims.UserID})
 	if err != nil {
-		uc.logger.Error("Database operation failed",
+		uc.logger.Error("UserDatabase operation failed",
 			zap.String("user_id", claims.UserID),
 			zap.Error(err),
 			zap.String("ip", ip))

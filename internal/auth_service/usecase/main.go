@@ -2,7 +2,7 @@ package auth_service_usecase
 
 import (
 	"github.com/vwency/microservices_golang/pkg/jwt"
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"go.uber.org/zap"
 )
 

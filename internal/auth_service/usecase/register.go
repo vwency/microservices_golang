@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
@@ -57,13 +57,13 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 
 	addUserResp, err := uc.dbClient.AddUser(ctx, addUserReq)
 	if err != nil {
-		uc.logger.Error("Failed to add user to database", zap.Error(err), zap.String("username", username))
+		uc.logger.Error("Failed to add user to user_database", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to add user: %v", err)
 	}
 
 	if !addUserResp.Success {
-		uc.logger.Error("Database operation failed", zap.String("message", addUserResp.Message), zap.String("username", username))
-		return nil, fmt.Errorf("database operation failed: %v", addUserResp.Message)
+		uc.logger.Error("UserDatabase operation failed", zap.String("message", addUserResp.Message), zap.String("username", username))
+		return nil, fmt.Errorf("database_user operation failed: %v", addUserResp.Message)
 	}
 
 	getUserReq := &databasev1.GetUserRequest{Username: username}

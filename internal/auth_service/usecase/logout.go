@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	databasev1 "github.com/vwency/microservices_golang/proto/database"
+	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"

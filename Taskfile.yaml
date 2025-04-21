@@ -17,7 +17,7 @@ tasks:
   run-database:
     desc: Run hello_service
     cmds:
-      - go run ./cmd/database_service
+      - go run ./cmd/user_database
 
   run-gateway:
     desc: Run hello_service

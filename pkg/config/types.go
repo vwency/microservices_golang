@@ -24,9 +24,10 @@ type ServiceConfig struct {
 		URL string `mapstructure:"url"`
 	} `mapstructure:"auth_service"`
 
-	DatabaseService struct {
-		URL string `mapstructure:"url"`
-	} `mapstructure:"database_service"`
+	UserDatabase struct {
+		URL            string `mapstructure:"url"`
+		MigrationsPath string `mapstructure:"migrations_path"`
+	} `mapstructure:"user_database"`
 
 	Tracing struct {
 		Enabled      bool   `mapstructure:"enabled"`
