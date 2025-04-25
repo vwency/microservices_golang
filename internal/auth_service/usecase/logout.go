@@ -23,7 +23,7 @@ func (uc *AuthUsecase) Logout(ctx context.Context, username string, accessToken 
 		return false, status.Error(codes.InvalidArgument, "username and access_token are required")
 	}
 
-	// Получить пользователя
+	// Get user from database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
 		Username: username,
 	})
@@ -37,32 +37,35 @@ func (uc *AuthUsecase) Logout(ctx context.Context, username string, accessToken 
 	if !getUserResp.Found {
 		uc.logger.Warn("User not found during logout attempt",
 			zap.String("username", username))
-		return false, nil
+		return false, status.Error(codes.NotFound, "user not found")
 	}
 
-	// Проверка — пользователь уже вышел?
-	if isTokenEmptyOrNone(getUserResp.HashedAccessToken) && isTokenEmptyOrNone(getUserResp.HashedRefreshToken) {
+	// Check if user is already logged out
+	if isTokenEmptyOrNone(getUserResp.HashedAccessToken) {
 		uc.logger.Info("User already logged out",
 			zap.String("user_id", getUserResp.UserId),
 			zap.String("username", username))
 		return true, nil
 	}
 
-	// Сравнение токена
+	// Compare the provided access token with stored one
 	match, err := authutils.ComparePasswordAndHash(uc.tokenPepper, accessToken, getUserResp.HashedAccessToken)
 	if err != nil {
 		uc.logger.Error("Access token comparison failed",
 			zap.String("username", username),
+			zap.String("stored_token", getUserResp.HashedAccessToken),
 			zap.Error(err))
 		return false, status.Errorf(codes.Unauthenticated, "invalid access token: %v", err)
 	}
+
 	if !match {
 		uc.logger.Warn("Invalid access token provided",
-			zap.String("username", username))
+			zap.String("username", username),
+			zap.String("stored_token", getUserResp.HashedAccessToken))
 		return false, status.Error(codes.Unauthenticated, "access token mismatch")
 	}
 
-	// Очистка токенов
+	// Clear tokens in database
 	logoutRequest := &databasev1.UpdateUserRequest{
 		UserId:             getUserResp.UserId,
 		HashedRefreshToken: "none",
@@ -75,14 +78,15 @@ func (uc *AuthUsecase) Logout(ctx context.Context, username string, accessToken 
 			zap.String("user_id", getUserResp.UserId),
 			zap.Error(err))
 
+		// If it's a validation error, try with different token format
 		if isTokenValidationError(err) {
-			uc.logger.Warn("Retrying logout with placeholder tokens",
+			uc.logger.Warn("Retrying logout with empty tokens instead of 'none'",
 				zap.String("user_id", getUserResp.UserId))
 
 			_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 				UserId:             getUserResp.UserId,
-				HashedRefreshToken: "none",
-				HashedAccessToken:  "none",
+				HashedRefreshToken: "",
+				HashedAccessToken:  "",
 			})
 			if err != nil {
 				uc.logger.Error("Fallback logout failed",
@@ -104,11 +108,13 @@ func (uc *AuthUsecase) Logout(ctx context.Context, username string, accessToken 
 
 func isTokenValidationError(err error) bool {
 	if status, ok := status.FromError(err); ok {
-		return status.Code() == codes.InvalidArgument && strings.Contains(status.Message(), "token fields")
+		return status.Code() == codes.InvalidArgument &&
+			(strings.Contains(status.Message(), "token") ||
+				strings.Contains(status.Message(), "Token"))
 	}
 	return false
 }
 
 func isTokenEmptyOrNone(token string) bool {
-	return token == "" || strings.ToLower(token) == "none"
+	return token == "" || strings.EqualFold(token, "none")
 }

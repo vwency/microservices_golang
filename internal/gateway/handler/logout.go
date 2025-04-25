@@ -33,20 +33,7 @@ func LogoutHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 		}
 		accessToken := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Проверяем валидность токена через /validate
-		validateResp, err := authService.Validate(r.Context(), accessToken)
-		if err != nil || !validateResp.Valid {
-			http.Error(w, "Invalid or expired access token", http.StatusUnauthorized)
-			return
-		}
-
-		// Проверяем, совпадает ли username из токена с переданным username
-		if validateResp.UserId != logoutReq.Username {
-			http.Error(w, "User ID in token does not match provided username", http.StatusUnauthorized)
-			return
-		}
-
-		// Выполняем разлогинивание
+		// Выполняем разлогинивание (вся валидация будет происходить в auth service)
 		resp, err := authService.Logout(r.Context(), logoutReq.Username, accessToken)
 		if err != nil {
 			http.Error(w, "Failed to logout", http.StatusInternalServerError)
