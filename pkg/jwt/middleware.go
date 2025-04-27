@@ -15,6 +15,15 @@ const (
 	bearerPrefix        = "Bearer "
 )
 
+// ContextKey тип для ключей контекста
+type ContextKey string
+
+const (
+	// ClaimsKey ключ для хранения claims в контексте
+	ClaimsKey ContextKey = "claims"
+)
+
+// JWTAuthInterceptor создает gRPC interceptor для JWT аутентификации
 func JWTAuthInterceptor(jwtManager *JWTManager) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -22,6 +31,7 @@ func JWTAuthInterceptor(jwtManager *JWTManager) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		// Пропускаем аутентификацию для методов AuthService
 		if strings.Contains(info.FullMethod, "AuthService") {
 			return handler(ctx, req)
 		}
@@ -47,13 +57,7 @@ func JWTAuthInterceptor(jwtManager *JWTManager) grpc.UnaryServerInterceptor {
 	}
 }
 
-type ContextKey string
-
-const (
-	ClaimsKey ContextKey = "claims"
-)
-
-func GetClaimsFromContext(ctx context.Context) (*Claims, bool) {
-	claims, ok := ctx.Value(ClaimsKey).(*Claims)
+func GetClaimsFromContext(ctx context.Context) (map[string]interface{}, bool) {
+	claims, ok := ctx.Value(ClaimsKey).(map[string]interface{})
 	return claims, ok
 }
