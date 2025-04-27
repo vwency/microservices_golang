@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
 )
 
-// ValidateResult содержит результаты валидации токена.
+// ValidateResult contains the results of token validation.
 type ValidateResult struct {
 	Valid     bool
 	UserID    string
@@ -18,83 +19,108 @@ type ValidateResult struct {
 	ExpiresAt int64
 }
 
-// ValidateAccessToken проверяет валидность access токена.
+// ValidateAccessToken validates the access token.
 func (uc *AuthUsecase) ValidateAccessToken(ctx context.Context, token string) (*ValidateResult, error) {
-	// Проверка, был ли передан токен
+	// Token must be provided
 	if token == "" {
 		return nil, errors.New("access token is required")
 	}
 
-	// Валидация токена и извлечение claims
+	// Validate token and extract claims
 	claims, err := uc.jwtManager.ValidateToken(token)
 	if err != nil {
-		uc.logger.Error("Failed to validate access token", zap.Error(err))
+		uc.logger.Error("Failed to validate access token",
+			zap.Error(err),
+			zap.String("token", token))
 		return nil, fmt.Errorf("failed to validate access token: %w", err)
 	}
 
-	// Извлечение userID из claims
+	// Extract userID from claims
 	userID, ok := claims["UserID"].(string)
 	if !ok {
-		uc.logger.Error("userID is missing or not a string", zap.Any("claims", claims))
+		uc.logger.Error("userID is missing or not a string",
+			zap.Any("claims", claims))
 		return nil, errors.New("invalid token: userID missing or not a string")
 	}
 
-	// Извлечение ролей из claims и проверка их типа
+	// Extract roles from claims and check their type
 	rolesInterface, ok := claims["Roles"].([]interface{})
 	if !ok {
-		uc.logger.Error("roles are missing or not an array", zap.Any("claims", claims))
+		uc.logger.Error("roles are missing or not an array",
+			zap.Any("claims", claims))
 		return nil, errors.New("invalid token: roles missing or not an array")
 	}
 
-	// Преобразование ролей в []string
+	// Convert roles to []string
 	var rolesStr []string
 	for _, role := range rolesInterface {
 		roleStr, ok := role.(string)
 		if !ok {
-			uc.logger.Error("invalid role type", zap.Any("role", role))
+			uc.logger.Error("invalid role type",
+				zap.Any("role", role))
 			return nil, fmt.Errorf("invalid role type: %v", role)
 		}
 		rolesStr = append(rolesStr, roleStr)
 	}
 
-	// Получение пользователя из базы данных
-	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: &userID})
+	// Fetch user from the database using userID (changed from Username to UserId)
+	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
+		UserId: &userID, // Исправлено: используем UserId вместо Username
+	})
 	if err != nil {
-		uc.logger.Error("Failed to fetch user during token validation", zap.Error(err), zap.String("userID", userID))
+		uc.logger.Error("Failed to fetch user during token validation",
+			zap.Error(err),
+			zap.String("userID", userID))
 		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}
 
-	// Проверка наличия пользователя в базе данных
+	// Check if the user exists in the database
 	if !getUserResp.Found {
-		uc.logger.Error("User not found during token validation", zap.String("userID", userID))
+		uc.logger.Error("User not found during token validation",
+			zap.String("userID", userID))
 		return nil, errors.New("user not found")
 	}
 
-	// Сравнение токена с хэшированным значением из базы данных
+	// Compare the token hash with the stored hashed access token in the database
 	match, err := authutils.ComparePasswordAndHash(uc.tokenPepper, token, getUserResp.HashedAccessToken)
 	if err != nil {
-		uc.logger.Error("Failed to compare token hashes", zap.Error(err), zap.String("userID", userID))
+		uc.logger.Error("Failed to compare token hashes",
+			zap.Error(err),
+			zap.String("userID", userID))
 		return nil, fmt.Errorf("failed to compare token hashes: %w", err)
 	}
 
-	// Проверка на несовпадение хэшей
+	// Check if the token hash matches
 	if !match {
-		uc.logger.Warn("Access token hash mismatch", zap.String("userID", userID))
+		uc.logger.Warn("Access token hash mismatch",
+			zap.String("userID", userID))
 		return nil, errors.New("invalid access token")
 	}
 
-	// Проверка срока действия токена (проверяем, что "exp" в claims — это int64)
-	expiry, ok := claims["exp"].(float64) // JWT "exp" обычно в формате float64
+	// Verify the token's expiry time
+	expiry, ok := claims["exp"].(float64)
 	if !ok {
-		uc.logger.Error("Token expiry missing or invalid", zap.Any("claims", claims))
+		uc.logger.Error("Token expiry missing or invalid",
+			zap.Any("claims", claims))
 		return nil, errors.New("invalid token: expiry missing or not a valid int64")
 	}
 
-	// Возвращаем результаты валидации
+	// Convert the expiry from float64 to int64
+	expiryInt64 := int64(expiry)
+
+	// Check if the token is expired
+	if time.Now().Unix() > expiryInt64 {
+		uc.logger.Warn("Access token is expired",
+			zap.String("userID", userID),
+			zap.Int64("expiry", expiryInt64))
+		return nil, errors.New("access token has expired")
+	}
+
+	// Return the result of validation
 	return &ValidateResult{
 		Valid:     true,
 		UserID:    userID,
 		Roles:     rolesStr,
-		ExpiresAt: int64(expiry), // Преобразуем float64 в int64
+		ExpiresAt: expiryInt64,
 	}, nil
 }

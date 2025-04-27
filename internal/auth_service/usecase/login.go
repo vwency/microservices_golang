@@ -81,12 +81,13 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
-	// Extract roles from the database response (default "user" role)
+	// Extract user_id and roles from the database response (default "user" role)
+	userID := getUserResp.UserId   // Use user_id from the database
 	roles := []interface{}{"user"} // Modify if roles are fetched from the database
 
-	// Create the payload for token generation
+	// Create the payload for token generation, with user_id instead of username
 	payload := map[string]interface{}{
-		"UserID": username,
+		"UserID": userID,
 		"Roles":  roles,
 	}
 
@@ -94,27 +95,27 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	accessToken, accessExpiresAt, err := uc.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
 		uc.logger.Error("Failed to generate access token",
-			zap.Error(err), zap.String("username", username))
+			zap.Error(err), zap.String("user_id", userID))
 		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
 	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(payload) // We don't need refreshExpiresAt
 	if err != nil {
 		uc.logger.Error("Failed to generate refresh token",
-			zap.Error(err), zap.String("username", username))
+			zap.Error(err), zap.String("user_id", userID))
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
 	// Hash the generated tokens
 	hashedAccessToken, err := authutils.GenHash(uc.tokenPepper, accessToken, nil)
 	if err != nil {
-		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
+		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("user_id", userID))
 		return nil, fmt.Errorf("failed to hash access token: %v", err)
 	}
 
 	hashedRefreshToken, err := authutils.GenHash(uc.tokenPepper, refreshToken, nil)
 	if err != nil {
-		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("username", username))
+		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("user_id", userID))
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
 	}
 

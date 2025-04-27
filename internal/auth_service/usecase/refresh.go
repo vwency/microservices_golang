@@ -10,6 +10,7 @@ import (
 )
 
 func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*TokenPair, error) {
+	// Get the IP address from context
 	ip := getIPFromContext(ctx)
 	uc.logger.Info("Attempting token refresh", zap.String("ip", ip))
 
@@ -70,7 +71,7 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*Token
 
 	// Create payload map for token generation
 	payload := map[string]interface{}{
-		"UserID": userID,
+		"UserID": userID, // Ensure the correct field here
 		"Roles":  roles,
 	}
 

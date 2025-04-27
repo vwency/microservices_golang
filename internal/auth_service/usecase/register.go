@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
@@ -15,6 +16,9 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
+	// Generate a unique user_id
+	userID := uuid.New().String()
+
 	// Hash the password
 	hashedPassword, err := authutils.GenHash(username, password, nil)
 	if err != nil {
@@ -22,26 +26,23 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
-	// Create temporary userID based on username
-	tempUserID := username
-
-	// Create the payload for token generation
+	// Create the payload for token generation with the user_id
 	roles := []interface{}{"user"} // Define roles for the user
 	payload := map[string]interface{}{
-		"UserID": tempUserID,
+		"UserID": userID, // Use user_id in the token payload
 		"Roles":  roles,
 	}
 
 	// Generate access token and refresh token
 	accessToken, accessExpiresAt, err := uc.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
-		uc.logger.Error("Failed to generate access token", zap.Error(err), zap.String("tempUserID", tempUserID))
+		uc.logger.Error("Failed to generate access token", zap.Error(err), zap.String("userID", userID))
 		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
 	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(payload)
 	if err != nil {
-		uc.logger.Error("Failed to generate refresh token", zap.Error(err), zap.String("tempUserID", tempUserID))
+		uc.logger.Error("Failed to generate refresh token", zap.Error(err), zap.String("userID", userID))
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
@@ -58,7 +59,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
 	}
 
-	// Create request to add user to the database
+	// Create request to add user to the database with user_id
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           username,
 		HashedPassword:     hashedPassword,
@@ -79,21 +80,20 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("database_user operation failed: %v", addUserResp.Message)
 	}
 
-	// Retrieve user after adding to verify the operation
-	getUserReq := &databasev1.GetUserRequest{Username: &username}
-	getUserResp, err := uc.dbClient.GetUser(ctx, getUserReq)
-	if err != nil {
-		uc.logger.Error("Failed to retrieve user after creation", zap.Error(err), zap.String("username", username))
-		return nil, fmt.Errorf("failed to retrieve user: %v", err)
+	// Update the user with the generated user_id
+	updateUserReq := &databasev1.UpdateUserRequest{
+		UserId:             userID,
+		HashedAccessToken:  hashedAccessToken,
+		HashedRefreshToken: hashedRefreshToken,
 	}
-
-	if !getUserResp.Found {
-		uc.logger.Error("User not found after creation", zap.String("username", username))
-		return nil, fmt.Errorf("user not found after creation")
+	_, err = uc.dbClient.UpdateUser(ctx, updateUserReq)
+	if err != nil {
+		uc.logger.Error("Failed to update user with user_id", zap.Error(err), zap.String("userID", userID))
+		return nil, fmt.Errorf("failed to update user with user_id: %v", err)
 	}
 
 	// Log successful user registration
-	uc.logger.Info("User registered successfully", zap.String("userID", getUserResp.UserId), zap.String("username", username), zap.Time("accessTokenExpiry", accessExpiresAt), zap.Time("refreshTokenExpiry", refreshExpiresAt))
+	uc.logger.Info("User registered successfully", zap.String("userID", userID), zap.String("username", username), zap.Time("accessTokenExpiry", accessExpiresAt), zap.Time("refreshTokenExpiry", refreshExpiresAt))
 
 	// Return the response with the tokens
 	return &authv1.RegisterResponse{
