@@ -66,7 +66,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("database_user operation failed: %v", addUserResp.Message)
 	}
 
-	getUserReq := &databasev1.GetUserRequest{Username: username}
+	getUserReq := &databasev1.GetUserRequest{Username: &username}
 	getUserResp, err := uc.dbClient.GetUser(ctx, getUserReq)
 	if err != nil {
 		uc.logger.Error("Failed to retrieve user after creation", zap.Error(err), zap.String("username", username))

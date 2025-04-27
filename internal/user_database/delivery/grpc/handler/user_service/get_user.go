@@ -23,23 +23,40 @@ func NewGetUserHandler(uc *user_usecase.UserUsecase, logger *zap.Logger) *GetUse
 }
 
 func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
-	if req.GetUsername() == "" && req.GetEmail() == "" {
+	if (req.UserId == nil || *req.UserId == "") &&
+		(req.Username == nil || *req.Username == "") &&
+		(req.Email == nil || *req.Email == "") {
 		h.logger.Warn("empty request parameters")
-		return nil, status.Error(codes.InvalidArgument, "username or email must be provided")
+		return nil, status.Error(codes.InvalidArgument, "user_id, username, or email must be provided")
 	}
 
 	params := user_usecase.UserParams{
-		Username: req.GetUsername(),
+		UserID:   req.GetUserId(),
+		Username: req.GetUsername(), // req.GetUsername() вернет string
 		Email:    req.GetEmail(),
 	}
 
 	user, err := h.uc.GetUser(params)
 	if err != nil {
-		// Проверяем, является ли ошибка NotFound
+		userID := ""
+		username := ""
+		email := ""
+
+		if req.UserId != nil {
+			userID = *req.UserId
+		}
+		if req.Username != nil {
+			username = *req.Username
+		}
+		if req.Email != nil {
+			email = *req.Email
+		}
+
 		if status.Code(err) == codes.NotFound {
 			h.logger.Info("user not found",
-				zap.String("username", req.GetUsername()),
-				zap.String("email", req.GetEmail()))
+				zap.String("user_id", userID),
+				zap.String("username", username),
+				zap.String("email", email))
 			return &pb.GetUserResponse{
 				Found:   false,
 				Message: "User not found",
@@ -47,8 +64,9 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 		}
 
 		h.logger.Error("failed to get user",
-			zap.String("username", req.GetUsername()),
-			zap.String("email", req.GetEmail()),
+			zap.String("user_id", userID),
+			zap.String("username", username),
+			zap.String("email", email),
 			zap.Error(err))
 		return nil, err
 	}

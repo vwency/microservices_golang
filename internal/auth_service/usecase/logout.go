@@ -25,7 +25,7 @@ func (uc *AuthUsecase) Logout(ctx context.Context, username string, accessToken 
 
 	// Get user from database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
-		Username: username,
+		Username: &username,
 	})
 	if err != nil {
 		uc.logger.Error("Failed to get user for logout",

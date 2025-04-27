@@ -47,7 +47,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	}
 
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
-		Username: username,
+		Username: &username,
 	})
 	if err != nil {
 		uc.logger.Error("UserDatabase operation failed",

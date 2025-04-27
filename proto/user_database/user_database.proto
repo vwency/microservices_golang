@@ -22,8 +22,9 @@ message InitResponse {
 }
 
 message GetUserRequest {
-  string username = 1;
-  string email = 2;
+  optional string username = 1;
+  optional string email = 2;
+  optional string user_id = 3;
 }
 
 message GetUserResponse {

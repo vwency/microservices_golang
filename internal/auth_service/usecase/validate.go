@@ -26,7 +26,7 @@ func (uc *AuthUsecase) ValidateAccessToken(ctx context.Context, token string) (*
 		uc.logger.Error("Failed to validate access token", zap.Error(err))
 		return nil, err
 	}
-	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: claims.UserID})
+	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: &claims.UserID})
 	if err != nil {
 		uc.logger.Error("Failed to fetch user during token validation", zap.Error(err), zap.String("userID", claims.UserID))
 		return nil, err

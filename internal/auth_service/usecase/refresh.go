@@ -22,7 +22,7 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*Token
 		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: claims.UserID})
+	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{Username: &claims.UserID})
 	if err != nil {
 		uc.logger.Error("UserDatabase operation failed",
 			zap.String("user_id", claims.UserID),
