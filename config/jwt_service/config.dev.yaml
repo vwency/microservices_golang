@@ -1,0 +1,18 @@
+jwt:
+  secret: "your-secret-key"
+  access_token_ttl: 15m
+  refresh_token_ttl: 24h
+  hash_pepper: "static-token-hash-secret" 
+
+app:
+  env: dev
+  port: "50061"
+  log_level: debug
+  service_name: "auth_service"
+
+
+auth_service:
+  url: "localhost:50056"
+
+user_database:
+  url: "user_database:50052"

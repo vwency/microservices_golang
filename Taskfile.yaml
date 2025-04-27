@@ -24,6 +24,11 @@ tasks:
     cmds:
       - go run ./cmd/gateway
 
+  run-jwt:
+    desc: Run jwt_service
+    cmds:
+    - go run ./cmd/jwt_service
+
   proto-generate:
     desc: Generate gRPC code from proto
     cmds:
