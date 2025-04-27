@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	// Assuming the JWTManager is part of this package
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 	"go.uber.org/zap"
@@ -15,18 +16,19 @@ var (
 	ErrTokenGeneration = errors.New("failed to generate tokens")
 )
 
+// TokenPair represents the access and refresh token pair
 type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
 	ExpiresAt    time.Time
 }
 
-// контекстный ключ для IP
+// contextKey for extracting IP address
 type contextKey string
 
 const ipContextKey = contextKey("ip")
 
-// getIPFromContext извлекает IP из контекста, добавленного middleware
+// getIPFromContext extracts IP address from the context (e.g., added by middleware)
 func getIPFromContext(ctx context.Context) string {
 	if ip, ok := ctx.Value(ipContextKey).(string); ok {
 		return ip
@@ -46,6 +48,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
+	// Fetch user data from the database
 	getUserResp, err := uc.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
 		Username: &username,
 	})
@@ -62,7 +65,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrUserNotFound
 	}
 
-	// Verify password with username-dependent hashing
+	// Verify password with the hashed password from the database
 	match, err := authutils.ComparePasswordAndHash(username, password, getUserResp.HashedPassword)
 	if err != nil {
 		uc.logger.Error("Password comparison failed",
@@ -78,44 +81,44 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 		return nil, ErrInvalidCredentials
 	}
 
-	// Use default "user" role since roles aren't available in the response
-	roles := []string{"user"}
+	// Extract roles from the database response (default "user" role)
+	roles := []interface{}{"user"} // Modify if roles are fetched from the database
 
-	// Generate new tokens
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(getUserResp.Username, roles)
-	if err != nil {
-		uc.logger.Error("Access token generation failed",
-			zap.String("user_id", getUserResp.UserId),
-			zap.Error(err))
-		return nil, fmt.Errorf("%w: access token", ErrTokenGeneration)
+	// Create the payload for token generation
+	payload := map[string]interface{}{
+		"UserID": username,
+		"Roles":  roles,
 	}
 
-	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(getUserResp.Username, roles)
+	// Generate access token and refresh token using JWTManager
+	accessToken, accessExpiresAt, err := uc.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
-		uc.logger.Error("Refresh token generation failed",
-			zap.String("user_id", getUserResp.UserId),
-			zap.Error(err))
-		return nil, fmt.Errorf("%w: refresh token", ErrTokenGeneration)
+		uc.logger.Error("Failed to generate access token",
+			zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
-	// Hash tokens before storing
-	hashedRefreshToken, err := authutils.GenHash(uc.tokenPepper, refreshToken, nil)
+	refreshToken, _, err := uc.jwtManager.GenerateRefreshToken(payload) // We don't need refreshExpiresAt
 	if err != nil {
-		uc.logger.Error("Failed to hash refresh token",
-			zap.String("user_id", getUserResp.UserId),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to secure tokens: %w", err)
+		uc.logger.Error("Failed to generate refresh token",
+			zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
+	// Hash the generated tokens
 	hashedAccessToken, err := authutils.GenHash(uc.tokenPepper, accessToken, nil)
 	if err != nil {
-		uc.logger.Error("Failed to hash access token",
-			zap.String("user_id", getUserResp.UserId),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to secure tokens: %w", err)
+		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to hash access token: %v", err)
 	}
 
-	// Update user with new hashed tokens
+	hashedRefreshToken, err := authutils.GenHash(uc.tokenPepper, refreshToken, nil)
+	if err != nil {
+		uc.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("username", username))
+		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
+	}
+
+	// Update user record in the database with hashed tokens
 	_, err = uc.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 		UserId:             getUserResp.UserId,
 		HashedRefreshToken: hashedRefreshToken,
@@ -131,11 +134,11 @@ func (uc *AuthUsecase) Login(ctx context.Context, username, password string) (*T
 	uc.logger.Info("Login successful",
 		zap.String("user_id", getUserResp.UserId),
 		zap.String("username", username),
-		zap.Time("token_expiry", expiresAt))
+		zap.Time("token_expiry", accessExpiresAt))
 
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt,
+		ExpiresAt:    accessExpiresAt,
 	}, nil
 }

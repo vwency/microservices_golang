@@ -15,26 +15,37 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("username, password and email are required")
 	}
 
+	// Hash the password
 	hashedPassword, err := authutils.GenHash(username, password, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash password", zap.Error(err), zap.String("username", username))
 		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
+	// Create temporary userID based on username
 	tempUserID := username
 
-	accessToken, expiresAt, err := uc.jwtManager.GenerateAccessToken(tempUserID, []string{"user"})
+	// Create the payload for token generation
+	roles := []interface{}{"user"} // Define roles for the user
+	payload := map[string]interface{}{
+		"UserID": tempUserID,
+		"Roles":  roles,
+	}
+
+	// Generate access token and refresh token
+	accessToken, accessExpiresAt, err := uc.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
 		uc.logger.Error("Failed to generate access token", zap.Error(err), zap.String("tempUserID", tempUserID))
 		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
-	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(tempUserID, []string{"user"})
+	refreshToken, refreshExpiresAt, err := uc.jwtManager.GenerateRefreshToken(payload)
 	if err != nil {
 		uc.logger.Error("Failed to generate refresh token", zap.Error(err), zap.String("tempUserID", tempUserID))
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
+	// Hash the generated tokens
 	hashedAccessToken, err := authutils.GenHash(uc.tokenPepper, accessToken, nil)
 	if err != nil {
 		uc.logger.Error("Failed to hash access token", zap.Error(err), zap.String("username", username))
@@ -47,6 +58,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
 	}
 
+	// Create request to add user to the database
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           username,
 		HashedPassword:     hashedPassword,
@@ -55,6 +67,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		HashedRefreshToken: hashedRefreshToken,
 	}
 
+	// Add the user to the database
 	addUserResp, err := uc.dbClient.AddUser(ctx, addUserReq)
 	if err != nil {
 		uc.logger.Error("Failed to add user to user_database", zap.Error(err), zap.String("username", username))
@@ -66,11 +79,12 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("database_user operation failed: %v", addUserResp.Message)
 	}
 
+	// Retrieve user after adding to verify the operation
 	getUserReq := &databasev1.GetUserRequest{Username: &username}
 	getUserResp, err := uc.dbClient.GetUser(ctx, getUserReq)
 	if err != nil {
 		uc.logger.Error("Failed to retrieve user after creation", zap.Error(err), zap.String("username", username))
-		return nil, fmt.Errorf("failed to retrasddsasdieve user: %v", err)
+		return nil, fmt.Errorf("failed to retrieve user: %v", err)
 	}
 
 	if !getUserResp.Found {
@@ -78,15 +92,13 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, password, email s
 		return nil, fmt.Errorf("user not found after creation")
 	}
 
-	uc.logger.Info("User registered successfully",
-		zap.String("userID", getUserResp.UserId),
-		zap.String("username", username),
-		zap.Time("accessTokenExpiry", expiresAt),
-		zap.Time("refreshTokenExpiry", refreshExpiresAt))
+	// Log successful user registration
+	uc.logger.Info("User registered successfully", zap.String("userID", getUserResp.UserId), zap.String("username", username), zap.Time("accessTokenExpiry", accessExpiresAt), zap.Time("refreshTokenExpiry", refreshExpiresAt))
 
+	// Return the response with the tokens
 	return &authv1.RegisterResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt.Unix(),
+		ExpiresAt:    accessExpiresAt.Unix(),
 	}, nil
 }

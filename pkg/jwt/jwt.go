@@ -9,32 +9,32 @@ import (
 )
 
 type JWTManager struct {
-	secretKey       string
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
+	SecretKey       string
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
 }
 
 func NewJWTManager(secretKey string, accessTTL, refreshTTL time.Duration) (*JWTManager, error) {
-	if secretKey == "" {
-		return nil, errors.New("JWT secret key cannot be empty")
-	}
 	return &JWTManager{
-		secretKey:       secretKey,
-		accessTokenTTL:  accessTTL,
-		refreshTokenTTL: refreshTTL,
+		SecretKey:       secretKey,
+		AccessTokenTTL:  accessTTL,
+		RefreshTokenTTL: refreshTTL,
 	}, nil
 }
 
+// GenerateAccessToken генерирует access token
 func (m *JWTManager) GenerateAccessToken(payload map[string]interface{}) (string, time.Time, error) {
-	expirationTime := time.Now().Add(m.accessTokenTTL)
+	expirationTime := time.Now().Add(m.AccessTokenTTL)
 	return m.generateToken(payload, expirationTime)
 }
 
+// GenerateRefreshToken генерирует refresh token
 func (m *JWTManager) GenerateRefreshToken(payload map[string]interface{}) (string, time.Time, error) {
-	expirationTime := time.Now().Add(m.refreshTokenTTL)
+	expirationTime := time.Now().Add(m.RefreshTokenTTL)
 	return m.generateToken(payload, expirationTime)
 }
 
+// generateToken генерирует JWT токен с заданным payload и временем истечения
 func (m *JWTManager) generateToken(payload map[string]interface{}, expirationTime time.Time) (string, time.Time, error) {
 	if len(payload) == 0 {
 		return "", time.Time{}, errors.New("payload cannot be empty")
@@ -49,7 +49,7 @@ func (m *JWTManager) generateToken(payload map[string]interface{}, expirationTim
 	claims["iat"] = time.Now().Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(m.secretKey))
+	tokenString, err := token.SignedString([]byte(m.SecretKey))
 	fmt.Printf("Generating token with payload: %v\n", payload)
 	if err != nil {
 		return "", time.Time{}, err
@@ -58,6 +58,7 @@ func (m *JWTManager) generateToken(payload map[string]interface{}, expirationTim
 	return tokenString, expirationTime, nil
 }
 
+// ValidateToken проверяет токен и возвращает его claims
 func (m *JWTManager) ValidateToken(tokenString string) (map[string]interface{}, error) {
 	if tokenString == "" {
 		return nil, errors.New("token string is empty")
@@ -67,7 +68,7 @@ func (m *JWTManager) ValidateToken(tokenString string) (map[string]interface{}, 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return []byte(m.secretKey), nil
+		return []byte(m.SecretKey), nil
 	})
 
 	if err != nil {
