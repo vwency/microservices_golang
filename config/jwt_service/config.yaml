@@ -8,12 +8,4 @@ app:
   env: dev
   port: "50061"
   log_level: debug
-  service_name: "auth_service"
-
-
-auth_service:
-  url: "localhost:50056"
-
-
-user_database:
-  url: "localhost:50052"
+  service_name: "jwt_service"
