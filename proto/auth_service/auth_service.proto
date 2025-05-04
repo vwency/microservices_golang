@@ -64,9 +64,10 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
-  string access_token = 1;
-  string refresh_token = 2;
-  int64 expires_at = 3;
+  string user_id = 1; 
+  string access_token = 2;
+  string refresh_token = 3;
+  int64 expires_at = 4;
 }
 
 
