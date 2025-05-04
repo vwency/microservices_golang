@@ -1,20 +1,20 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"net"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
-	handler_hello "github.com/vwency/microservices_golang/internal/hello_service/handler"
-	usecase_hello "github.com/vwency/microservices_golang/internal/hello_service/usecase"
-	"github.com/vwency/microservices_golang/pkg/config"
-	"github.com/vwency/microservices_golang/pkg/logger"
-	"github.com/vwency/microservices_golang/pkg/metrics"
-	"github.com/vwency/microservices_golang/pkg/tracing"
-	"github.com/vwency/microservices_golang/proto/hello_service"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/metric"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"google.golang.org/grpc"
+
+	"github.com/vwency/microservices_golang/internal/hello_service/endpoint"
+	"github.com/vwency/microservices_golang/internal/hello_service/service"
+	"github.com/vwency/microservices_golang/internal/hello_service/transport"
+	"github.com/vwency/microservices_golang/pkg/config"
 )
 
 var Cfg config.ServiceConfig
@@ -23,88 +23,37 @@ func main() {
 	env := config.DetectEnv()
 	config.Init(env, "hello_service", &Cfg)
 
-	logger.Init(Cfg.App.LogLevel)
+	var logger log.Logger
+	{
+		logger = log.NewLogfmtLogger(os.Stderr)
+		logger = level.NewFilter(logger, level.AllowDebug())
+		logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller, "service", Cfg.App.ServiceName)
+	}
 
-	tp, err := tracing.NewTracerProvider(tracing.Config{
-		ServiceName:   Cfg.App.ServiceName,
-		EnableTracing: Cfg.Tracing.Enabled,
-		OtlpEndpoint:  Cfg.Tracing.OtlpEndpoint,
-	})
+	svc := service.NewHelloService(logger)
+	endpoints := endpoint.MakeEndpoints(svc)
+	grpcServerImpl := transport.NewGRPCServer(endpoints, logger)
+
+	listener, err := net.Listen("tcp", ":"+Cfg.App.Port)
 	if err != nil {
-		logger.Fatal("failed to initialize tracing: %v", err)
-	}
-	if tp != nil {
-		defer func() {
-			if err := tp.Shutdown(context.Background()); err != nil {
-				logger.Error("failed to shutdown tracer provider: %v", err)
-			}
-		}()
+		level.Error(logger).Log("msg", "failed to listen gRPC", "err", err)
+		os.Exit(1)
 	}
 
-	var meter metric.Meter
-	if Cfg.Metrics.Enabled {
-		mp, err := metrics.NewMeterProvider(metrics.Config{
-			ServiceName:    Cfg.App.ServiceName,
-			EnableMetrics:  Cfg.Metrics.Enabled,
-			OtlpEndpoint:   Cfg.Metrics.OtlpEndpoint,
-			ExportInterval: parseDurationOrDefault(Cfg.Metrics.ExportInterval, 10*time.Second),
-			ExportTimeout:  parseDurationOrDefault(Cfg.Metrics.ExportTimeout, 5*time.Second),
-		})
-		if err != nil {
-			logger.Fatal("failed to initialize metrics: %v", err)
-		}
-		if mp != nil {
-			defer func() {
-				if err := mp.Shutdown(context.Background()); err != nil {
-					logger.Error("failed to shutdown meter provider: %v", err)
-				}
-			}()
-			meter = otel.Meter(Cfg.App.ServiceName)
-		}
-	}
+	grpcServer := grpc.NewServer()
+	transport.RegisterHelloServiceServer(grpcServer, grpcServerImpl)
 
-	port := Cfg.App.Port
-	logger.Info("Starting gRPC server on port " + port)
+	errs := make(chan error)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errs <- fmt.Errorf("%s", <-c)
+	}()
 
-	lis, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		logger.Fatal("failed to listen: %v", err)
-	}
+	go func() {
+		level.Info(logger).Log("msg", "starting gRPC server", "address", Cfg.App.Port)
+		errs <- grpcServer.Serve(listener)
+	}()
 
-	interceptors := []grpc.UnaryServerInterceptor{}
-
-	if tp != nil {
-		interceptors = append(interceptors, tracing.TracingInterceptor(tp.Tracer(Cfg.App.ServiceName)))
-	}
-
-	if meter != nil {
-		interceptors = append(interceptors, metrics.MetricsInterceptor(meter))
-	}
-
-	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(interceptors...),
-	)
-
-	helloUsecase := usecase_hello.NewHelloUsecase()
-	helloHandler := handler_hello.NewHelloHandler(helloUsecase)
-
-	hello_service.RegisterHelloServiceServer(grpcServer, helloHandler)
-
-	logger.Info("gRPC server is running on port " + port)
-
-	if err := grpcServer.Serve(lis); err != nil {
-		logger.Fatal("failed to serve: %v", err)
-	}
-}
-
-func parseDurationOrDefault(durationStr string, defaultValue time.Duration) time.Duration {
-	if durationStr == "" {
-		return defaultValue
-	}
-	dur, err := time.ParseDuration(durationStr)
-	if err != nil {
-		logger.Debug("invalid duration %q, using default: %v", durationStr, err)
-		return defaultValue
-	}
-	return dur
+	level.Info(logger).Log("exit", <-errs)
 }
