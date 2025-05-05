@@ -23,6 +23,10 @@ var (
 	ErrTokenGeneration    = errors.New("failed to generate tokens")
 )
 
+type contextKey string
+
+const ipContextKey = contextKey("ip")
+
 func getIPFromContext(ctx context.Context) string {
 	if ip, ok := ctx.Value(ipContextKey).(string); ok {
 		return ip
@@ -37,22 +41,24 @@ type service struct {
 	tokenPepper string
 }
 
+type AuthService interface {
+	Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error)
+	Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error)
+	Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error)
+	Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error)
+	ValidateAccessToken(ctx context.Context, req *authv1.ValidateRequest) (*authv1.ValidateResponse, error)
+}
+
 func NewService(
 	dbClient databasev1.DatabaseInitServiceClient,
 	jwtManager *jwt.JWTManager,
 	logger log.Logger,
 	tokenPepper string,
-) Service {
+) AuthService { // Changed return type to AuthService
 	return &service{
 		dbClient:    dbClient,
 		jwtManager:  jwtManager,
 		logger:      logger,
 		tokenPepper: tokenPepper,
 	}
-}
-
-type AuthService interface {
-	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
-	Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error)
-	Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error)
 }

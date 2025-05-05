@@ -6,126 +6,93 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vwency/microservices_golang/pkg/jwt"
+	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
-	"go.uber.org/zap"
 )
 
-// ValidateResult contains the results of token validation.
-type ValidateResult struct {
-	Valid     bool
-	UserID    string
-	Roles     []string
-	ExpiresAt int64
-}
+// ... (остальные типы и константы из main.go остаются без изменений)
 
-// ValidateService defines methods related to token validation.
-type ValidateService interface {
-	ValidateAccessToken(ctx context.Context, token string) (*ValidateResult, error)
-}
-
-type validateService struct {
-	dbClient    databasev1.DatabaseInitServiceClient
-	jwtManager  *jwt.JWTManager
-	logger      *zap.Logger
-	tokenPepper string
-}
-
-// NewValidateService creates a new ValidateService.
-func NewValidateService(
-	dbClient databasev1.DatabaseInitServiceClient,
-	jwtManager *jwt.JWTManager,
-	logger *zap.Logger,
-	tokenPepper string,
-) ValidateService {
-	return &validateService{
-		dbClient:    dbClient,
-		jwtManager:  jwtManager,
-		logger:      logger,
-		tokenPepper: tokenPepper,
-	}
-}
-
-// ValidateAccessToken validates the access token.
-func (s *validateService) ValidateAccessToken(ctx context.Context, token string) (*ValidateResult, error) {
+// ValidateAccessToken проверяет access token на валидность и возвращает результат.
+func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateRequest) (*authv1.ValidateResponse, error) {
+	token := req.GetAccessToken()
 	if token == "" {
 		return nil, errors.New("access token is required")
 	}
 
-	// Validate JWT token
+	// 1. Проверка токена через JWTManager
 	claims, err := s.jwtManager.ValidateToken(token)
 	if err != nil {
-		s.logger.Error("Failed to validate access token", zap.Error(err), zap.String("token", token))
-		return nil, fmt.Errorf("failed to validate access token: %w", err)
+		s.logger.Log("error", fmt.Sprintf("Failed to validate token: %v", err), "token", token)
+		return nil, fmt.Errorf("token validation failed: %w", err)
 	}
 
-	// Extract userID and roles from the claims
+	// 2. Извлечение userID
 	userID, ok := claims["UserID"].(string)
-	if !ok {
-		s.logger.Error("userID missing or invalid", zap.Any("claims", claims))
+	if !ok || userID == "" {
+		s.logger.Log("error", "Invalid or missing UserID in claims", "claims", claims)
 		return nil, errors.New("invalid token: userID missing or not a string")
 	}
 
-	rolesInterface, ok := claims["Roles"].([]interface{})
+	// 3. Извлечение ролей
+	rolesRaw, ok := claims["Roles"].([]interface{})
 	if !ok {
-		s.logger.Error("roles missing or invalid", zap.Any("claims", claims))
+		s.logger.Log("error", "Invalid or missing Roles in claims", "claims", claims)
 		return nil, errors.New("invalid token: roles missing or not an array")
 	}
 
-	var rolesStr []string
-	for _, role := range rolesInterface {
-		roleStr, ok := role.(string)
+	var roles []string
+	for _, r := range rolesRaw {
+		roleStr, ok := r.(string)
 		if !ok {
-			s.logger.Error("invalid role type", zap.Any("role", role))
-			return nil, fmt.Errorf("invalid role type: %v", role)
+			s.logger.Log("error", fmt.Sprintf("Invalid role type: %v", r))
+			return nil, fmt.Errorf("invalid role type: %v", r)
 		}
-		rolesStr = append(rolesStr, roleStr)
+		roles = append(roles, roleStr)
 	}
 
-	// Check if user exists
-	getUserResp, err := s.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
-		UserId: &userID,
-	})
+	// 4. Получение пользователя из базы
+	getUserResp, err := s.dbClient.GetUser(ctx, &databasev1.GetUserRequest{UserId: &userID})
 	if err != nil {
-		s.logger.Error("Failed to fetch user", zap.Error(err), zap.String("userID", userID))
+		s.logger.Log("error", fmt.Sprintf("Failed to fetch user: %v", err), "userID", userID)
 		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}
 
 	if !getUserResp.Found {
-		s.logger.Error("User not found", zap.String("userID", userID))
+		s.logger.Log("warn", "User not found", "userID", userID)
 		return nil, errors.New("user not found")
 	}
 
-	// Compare token hashes for security
+	// 5. Проверка совпадения токена с хэшем из базы
 	match, err := authutils.ComparePasswordAndHash(s.tokenPepper, token, getUserResp.HashedAccessToken)
 	if err != nil {
-		s.logger.Error("Failed to compare token hashes", zap.Error(err), zap.String("userID", userID))
-		return nil, fmt.Errorf("failed to compare token hashes: %w", err)
+		s.logger.Log("error", fmt.Sprintf("Token hash comparison failed: %v", err), "userID", userID)
+		return nil, fmt.Errorf("token hash comparison failed: %w", err)
 	}
 
 	if !match {
-		s.logger.Warn("Access token hash mismatch", zap.String("userID", userID))
-		return nil, errors.New("invalid access token")
+		s.logger.Log("warn", "Token hash mismatch", "userID", userID)
+		return nil, errors.New("invalid token: hash mismatch")
 	}
 
-	// Validate expiration
-	expiry, ok := claims["exp"].(float64)
+	// 6. Проверка срока действия токена
+	expiryFloat, ok := claims["exp"].(float64)
 	if !ok {
-		s.logger.Error("Token expiry missing or invalid", zap.Any("claims", claims))
-		return nil, errors.New("invalid token: expiry missing or invalid")
+		s.logger.Log("error", "Invalid or missing expiry in claims", "claims", claims)
+		return nil, errors.New("invalid token: expiry missing or not a number")
 	}
+	expiry := int64(expiryFloat)
 
-	expiryInt64 := int64(expiry)
-	if time.Now().Unix() > expiryInt64 {
-		s.logger.Warn("Access token expired", zap.String("userID", userID), zap.Int64("expiry", expiryInt64))
+	if time.Now().Unix() > expiry {
+		s.logger.Log("warn", "Token expired", "userID", userID, "expiry", expiry)
 		return nil, errors.New("access token has expired")
 	}
 
-	return &ValidateResult{
+	// Успешная валидация
+	return &authv1.ValidateResponse{
 		Valid:     true,
-		UserID:    userID,
-		Roles:     rolesStr,
-		ExpiresAt: expiryInt64,
+		UserId:    userID,
+		Roles:     roles,
+		ExpiresAt: expiry,
 	}, nil
 }

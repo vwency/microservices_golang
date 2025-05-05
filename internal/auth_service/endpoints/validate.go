@@ -16,6 +16,6 @@ func MakeValidateEndpoint(s service.AuthService) endpoint.Endpoint {
 		if !ok {
 			return nil, status.Error(codes.InvalidArgument, "invalid request type")
 		}
-		return s.Validate(ctx, req)
+		return s.ValidateAccessToken(ctx, req)
 	}
 }

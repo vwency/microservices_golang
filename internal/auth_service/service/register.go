@@ -6,24 +6,12 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log/level"
+	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
 )
 
-type RegisterRequest struct {
-	Username string
-	Password string
-	Email    string
-}
-
-type RegisterResponse struct {
-	UserID       string
-	AccessToken  string
-	RefreshToken string
-	ExpiresAt    int64
-}
-
-func (s *service) Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error) {
+func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	ip := getIPFromContext(ctx)
 	_ = level.Info(s.logger).Log("msg", "Attempting to register user", "ip", ip, "username", req.Username)
 
@@ -88,8 +76,8 @@ func (s *service) Register(ctx context.Context, req *RegisterRequest) (*Register
 		"ip", ip,
 	)
 
-	return &RegisterResponse{
-		UserID:       addUserResp.UserId,
+	return &authv1.RegisterResponse{
+		UserId:       addUserResp.UserId,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    time.Now().Add(time.Hour * 1).Unix(),

@@ -2,54 +2,23 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
-	"github.com/vwency/microservices_golang/pkg/jwt"
+	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
-	"go.uber.org/zap"
 )
 
-// TokenPair represents the access and refresh token pair
+func (s *service) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+	username := req.GetUsername()
+	password := req.GetPassword()
 
-
-// contextKey for extracting IP address
-type contextKey string
-
-const ipContextKey = contextKey("ip")
-
-
-
-// LoginService defines the dependencies for login usecase
-type LoginService struct {
-	dbClient    databasev1.DatabaseInitServiceClient
-	jwtManager  *jwt.JWTManager
-	logger      *zap.Logger
-	tokenPepper string
-}
-
-func NewLoginService(
-	dbClient databasev1.DatabaseInitServiceClient,
-	jwtManager *jwt.JWTManager,
-	logger *zap.Logger,
-	tokenPepper string,
-) *LoginService {
-	return &LoginService{
-		dbClient:    dbClient,
-		jwtManager:  jwtManager,
-		logger:      logger,
-		tokenPepper: tokenPepper,
-	}
-}
-
-// Login authenticates user and returns tokens
-func (s *LoginService) Login(ctx context.Context, username, password string) (*TokenPair, error) {
-	s.logger.Info("Attempting login for user", zap.String("username", username), zap.String("ip", getIPFromContext(ctx)))
+	s.logger.Log("message", "Attempting login for user",
+		"username", username,
+		"ip", getIPFromContext(ctx))
 
 	if username == "" || password == "" {
-		s.logger.Warn("Empty credentials provided", zap.String("username", username))
+		s.logger.Log("message", "Empty credentials provided", "username", username)
 		return nil, ErrInvalidCredentials
 	}
 
@@ -57,22 +26,28 @@ func (s *LoginService) Login(ctx context.Context, username, password string) (*T
 		Username: &username,
 	})
 	if err != nil {
-		s.logger.Error("UserDatabase operation failed", zap.String("username", username), zap.Error(err))
+		s.logger.Log("message", "UserDatabase operation failed",
+			"username", username,
+			"error", err)
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	if !getUserResp.Found {
-		s.logger.Warn("User not found", zap.String("username", username))
+		s.logger.Log("message", "User not found", "username", username)
 		return nil, ErrUserNotFound
 	}
 
 	match, err := authutils.ComparePasswordAndHash(username, password, getUserResp.HashedPassword)
 	if err != nil {
-		s.logger.Error("Password comparison failed", zap.String("username", username), zap.Error(err))
+		s.logger.Log("message", "Password comparison failed",
+			"username", username,
+			"error", err)
 		return nil, fmt.Errorf("authentication error: %w", err)
 	}
 	if !match {
-		s.logger.Warn("Invalid password", zap.String("username", username), zap.String("ip", getIPFromContext(ctx)))
+		s.logger.Log("message", "Invalid password",
+			"username", username,
+			"ip", getIPFromContext(ctx))
 		return nil, ErrInvalidCredentials
 	}
 
@@ -86,24 +61,33 @@ func (s *LoginService) Login(ctx context.Context, username, password string) (*T
 
 	accessToken, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
-		s.logger.Error("Failed to generate access token", zap.Error(err), zap.String("user_id", userID))
+		s.logger.Log("message", "Failed to generate access token",
+			"error", err,
+			"user_id", userID)
 		return nil, fmt.Errorf("failed to generate access token: %v", err)
 	}
 
 	refreshToken, _, err := s.jwtManager.GenerateRefreshToken(payload)
 	if err != nil {
-		s.logger.Error("Failed to generate refresh token", zap.Error(err), zap.String("user_id", userID))
+		s.logger.Log("message", "Failed to generate refresh token",
+			"error", err,
+			"user_id", userID)
 		return nil, fmt.Errorf("failed to generate refresh token: %v", err)
 	}
 
 	hashedAccessToken, err := authutils.GenHash(s.tokenPepper, accessToken, nil)
 	if err != nil {
-		s.logger.Error("Failed to hash access token", zap.Error(err), zap.String("user_id", userID))
+		s.logger.Log("message", "Failed to hash access token",
+			"error", err,
+			"user_id", userID)
 		return nil, fmt.Errorf("failed to hash access token: %v", err)
 	}
+
 	hashedRefreshToken, err := authutils.GenHash(s.tokenPepper, refreshToken, nil)
 	if err != nil {
-		s.logger.Error("Failed to hash refresh token", zap.Error(err), zap.String("user_id", userID))
+		s.logger.Log("message", "Failed to hash refresh token",
+			"error", err,
+			"user_id", userID)
 		return nil, fmt.Errorf("failed to hash refresh token: %v", err)
 	}
 
@@ -113,15 +97,20 @@ func (s *LoginService) Login(ctx context.Context, username, password string) (*T
 		HashedAccessToken:  hashedAccessToken,
 	})
 	if err != nil {
-		s.logger.Error("Failed to update user tokens", zap.String("user_id", userID), zap.Error(err))
+		s.logger.Log("message", "Failed to update user tokens",
+			"user_id", userID,
+			"error", err)
 		return nil, fmt.Errorf("failed to update tokens: %w", err)
 	}
 
-	s.logger.Info("Login successful", zap.String("user_id", userID), zap.String("username", username), zap.Time("token_expiry", accessExpiresAt))
+	s.logger.Log("message", "Login successful",
+		"user_id", userID,
+		"username", username,
+		"token_expiry", accessExpiresAt)
 
-	return &TokenPair{
+	return &authv1.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresAt:    accessExpiresAt,
+		ExpiresAt:    accessExpiresAt.Unix(),
 	}, nil
 }

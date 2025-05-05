@@ -10,12 +10,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func MakeLoginEndpoint(s service.AuthService) endpoint.Endpoint {
+func MakeLogoutEndpoint(s service.AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, ok := request.(*authv1.LoginRequest)
+		req, ok := request.(*authv1.LogoutRequest)
 		if !ok {
 			return nil, status.Error(codes.InvalidArgument, "invalid request type")
 		}
-		return s.Login(ctx, req)
+		return s.Logout(ctx, req)
 	}
 }
