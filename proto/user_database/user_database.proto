@@ -64,7 +64,6 @@ message AddUserRequest {
 message AddUserResponse {
   bool success = 1;
   string message = 2;
-  string user_id = 3;
 }
 
 message UpdateUserRequest {

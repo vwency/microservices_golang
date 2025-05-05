@@ -501,7 +501,6 @@ type AddUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -546,13 +545,6 @@ func (x *AddUserResponse) GetSuccess() bool {
 func (x *AddUserResponse) GetMessage() string {
 	if x != nil {
 		return x.Message
-	}
-	return ""
-}
-
-func (x *AddUserResponse) GetUserId() string {
-	if x != nil {
-		return x.UserId
 	}
 	return ""
 }
@@ -713,11 +705,10 @@ const file_user_database_user_database_proto_rawDesc = "" +
 	"\x0fhashed_password\x18\x02 \x01(\tR\x0ehashedPassword\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x120\n" +
 	"\x14hashed_refresh_token\x18\x04 \x01(\tR\x12hashedRefreshToken\x12.\n" +
-	"\x13hashed_access_token\x18\x05 \x01(\tR\x11hashedAccessToken\"^\n" +
+	"\x13hashed_access_token\x18\x05 \x01(\tR\x11hashedAccessToken\"E\n" +
 	"\x0fAddUserResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"\x8e\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x8e\x01\n" +
 	"\x11UpdateUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x120\n" +
 	"\x14hashed_refresh_token\x18\x02 \x01(\tR\x12hashedRefreshToken\x12.\n" +

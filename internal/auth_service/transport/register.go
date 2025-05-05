@@ -3,25 +3,22 @@ package transport
 import (
 	"context"
 
-	"github.com/vwency/microservices_golang/internal/auth_service/service"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 )
 
+func (s *grpcServer) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
+	_, resp, err := s.register.ServeGRPC(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*authv1.RegisterResponse), nil
+}
+
 func decodeRegisterRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req := request.(*authv1.RegisterRequest)
-	return &service.RegisterRequest{
-		Username: req.GetUsername(),
-		Password: req.GetPassword(),
-		Email:    req.GetEmail(),
-	}, nil
+	return req, nil
 }
 
 func encodeRegisterResponse(_ context.Context, response interface{}) (interface{}, error) {
-	resp := response.(*service.RegisterResponse)
-	return &authv1.RegisterResponse{
-		UserId:       resp.UserID,
-		AccessToken:  resp.AccessToken,
-		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    resp.ExpiresAt,
-	}, nil
+	return response, nil
 }

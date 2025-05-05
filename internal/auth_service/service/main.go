@@ -62,3 +62,16 @@ func NewService(
 		tokenPepper: tokenPepper,
 	}
 }
+
+type RegisterRequest struct {
+	Username string
+	Password string
+	Email    string
+}
+
+type RegisterResponse struct {
+	UserID       string
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
+}
