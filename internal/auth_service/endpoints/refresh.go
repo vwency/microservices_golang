@@ -2,22 +2,20 @@ package endpoints
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/vwency/microservices_golang/internal/auth_service/service"
-	"github.com/vwency/microservices_golang/proto/auth_service"
+	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// MakeRefreshEndpoint creates an endpoint for refresh
-func MakeRefreshEndpoint(svc service.Service) endpoint.Endpoint {
+func MakeRefreshEndpoint(s service.AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(*auth_service.RefreshRequest)
-		resp, err := svc.Refresh(ctx, req.RefreshToken) // Pass the refreshToken from the request
-		if err != nil {
-			return nil, fmt.Errorf("refresh failed: %w", err)
+		req, ok := request.(*authv1.RefreshRequest)
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "invalid request type")
 		}
-
-		return resp, nil
+		return s.Refresh(ctx, req)
 	}
 }

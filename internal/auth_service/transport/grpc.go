@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 
-	"github.com/go-kit/kit/endpoint"
 	kitgrpc "github.com/go-kit/kit/transport/grpc"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	"google.golang.org/grpc"
@@ -11,16 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Endpoints - все эндпоинты auth-сервиса
-type Endpoints struct {
-	Login    endpoint.Endpoint
-	Logout   endpoint.Endpoint
-	Register endpoint.Endpoint
-	Refresh  endpoint.Endpoint
-	Validate endpoint.Endpoint
-}
-
-// grpcServer реализует authv1.AuthServiceServer с использованием go-kit
 type grpcServer struct {
 	login    kitgrpc.Handler
 	logout   kitgrpc.Handler

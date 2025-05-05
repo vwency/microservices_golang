@@ -5,36 +5,17 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/vwency/microservices_golang/internal/auth_service/service"
+	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// ValidateRequest defines the request structure.
-type ValidateRequest struct {
-	AccessToken string
-}
-
-// ValidateResponse defines the response structure.
-type ValidateResponse struct {
-	Valid     bool
-	UserId    string
-	Roles     []string
-	ExpiresAt int64
-}
-
-// MakeValidateEndpoint creates the endpoint for validating the access token.
-func MakeValidateEndpoint(svc service.ValidateService) endpoint.Endpoint {
+func MakeValidateEndpoint(s service.AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(*ValidateRequest)
-		result, err := svc.ValidateAccessToken(ctx, req.AccessToken)
-		if err != nil {
-			// Enhanced error logging and returning a more specific error message
-			return nil, err
+		req, ok := request.(*authv1.ValidateRequest)
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "invalid request type")
 		}
-
-		return &ValidateResponse{
-			Valid:     result.Valid,
-			UserId:    result.UserID,
-			Roles:     result.Roles,
-			ExpiresAt: result.ExpiresAt,
-		}, nil
+		return s.Validate(ctx, req)
 	}
 }

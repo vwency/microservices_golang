@@ -8,6 +8,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func (s *grpcServer) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+	_, resp, err := s.login.ServeGRPC(ctx, req)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "login failed: %v", err)
+	}
+	return resp.(*authv1.LoginResponse), nil
+}
+
 func decodeLoginRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req, ok := request.(*authv1.LoginRequest)
 	if !ok {

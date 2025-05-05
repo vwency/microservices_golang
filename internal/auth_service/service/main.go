@@ -2,12 +2,33 @@ package service
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/vwency/microservices_golang/pkg/jwt"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 )
+
+type TokenPair struct {
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
+}
+
+var (
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrTokenGeneration    = errors.New("failed to generate tokens")
+)
+
+func getIPFromContext(ctx context.Context) string {
+	if ip, ok := ctx.Value(ipContextKey).(string); ok {
+		return ip
+	}
+	return "unknown"
+}
 
 type service struct {
 	dbClient    databasev1.DatabaseInitServiceClient
@@ -32,5 +53,6 @@ func NewService(
 
 type AuthService interface {
 	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
+	Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error)
 	Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error)
 }

@@ -2,15 +2,22 @@ package endpoints
 
 import (
 	"github.com/go-kit/kit/endpoint"
-	"github.com/vwency/microservices_golang/internal/auth_service/service"
 )
 
 type Endpoints struct {
-	RegisterEndpoint endpoint.Endpoint
+	Login    endpoint.Endpoint
+	Logout   endpoint.Endpoint
+	Register endpoint.Endpoint
+	Refresh  endpoint.Endpoint
+	Validate endpoint.Endpoint
 }
 
-func MakeEndpoints(s service.AuthService) Endpoints {
+func MakeEndpoints(s AuthService) Endpoints {
 	return Endpoints{
-		RegisterEndpoint: MakeRegisterEndpoint(s),
+		Login:    MakeLoginEndpoint(s),
+		Logout:   MakeLogoutEndpoint(s),
+		Register: MakeRegisterEndpoint(s),
+		Refresh:  MakeRefreshEndpoint(s),
+		Validate: MakeValidateEndpoint(s),
 	}
 }

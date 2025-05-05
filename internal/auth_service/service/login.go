@@ -13,29 +13,14 @@ import (
 )
 
 // TokenPair represents the access and refresh token pair
-type TokenPair struct {
-	AccessToken  string
-	RefreshToken string
-	ExpiresAt    time.Time
-}
 
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrTokenGeneration    = errors.New("failed to generate tokens")
-)
 
 // contextKey for extracting IP address
 type contextKey string
 
 const ipContextKey = contextKey("ip")
 
-func getIPFromContext(ctx context.Context) string {
-	if ip, ok := ctx.Value(ipContextKey).(string); ok {
-		return ip
-	}
-	return "unknown"
-}
+
 
 // LoginService defines the dependencies for login usecase
 type LoginService struct {
