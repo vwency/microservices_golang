@@ -59,6 +59,7 @@ message AddUserRequest {
   string email = 3;
   string hashed_refresh_token = 4;
   string hashed_access_token = 5;
+  optional string user_id = 6;
 }
 
 message AddUserResponse {

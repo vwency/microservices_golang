@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-kit/kit/log/level"
+	"github.com/google/uuid"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 	"github.com/vwency/microservices_golang/utils/authutils"
@@ -20,96 +21,69 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 	)
 
 	if req.Username == "" || req.Password == "" || req.Email == "" {
-		_ = level.Warn(s.logger).Log(
-			"msg", "Missing registration credentials",
-			"username", req.Username,
-		)
 		return nil, status.Error(codes.InvalidArgument, "username, password and email are required")
 	}
 
+	// Генерируем user_id один раз
+	userID := uuid.New().String()
+
 	hashedPassword, err := authutils.GenHash(req.Username, req.Password, nil)
 	if err != nil {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to hash password",
-			"username", req.Username,
-			"err", err,
-		)
+		_ = level.Error(s.logger).Log("msg", "Failed to hash password", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", err)
 	}
 
-	// Generate tokens first
-	roles := []interface{}{"user"}
+	// Генерируем токены с user_id
 	payload := map[string]interface{}{
-		"Username": req.Username, // Use username as identifier
-		"Roles":    roles,
+		"UserID": userID, // Используем сгенерированный ID
+		"Roles":  []interface{}{"user"},
 	}
 
 	accessToken, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(payload)
 	if err != nil {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to generate access token",
-			"username", req.Username,
-			"err", err,
-		)
+		_ = level.Error(s.logger).Log("msg", "Failed to generate access token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to generate access token: %v", err)
 	}
 
-	refreshToken, refreshExpiresAt, err := s.jwtManager.GenerateRefreshToken(payload)
+	refreshToken, _, err := s.jwtManager.GenerateRefreshToken(payload)
 	if err != nil {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to generate refresh token",
-			"username", req.Username,
-			"err", err,
-		)
+		_ = level.Error(s.logger).Log("msg", "Failed to generate refresh token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to generate refresh token: %v", err)
 	}
 
+	// Хешируем токены
 	hashedAccessToken, err := authutils.GenHash(s.tokenPepper, accessToken, nil)
 	if err != nil {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to hash access token",
-			"username", req.Username,
-			"err", err,
-		)
+		_ = level.Error(s.logger).Log("msg", "Failed to hash access token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to hash access token: %v", err)
 	}
 
 	hashedRefreshToken, err := authutils.GenHash(s.tokenPepper, refreshToken, nil)
 	if err != nil {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to hash refresh token",
-			"username", req.Username,
-			"err", err,
-		)
+		_ = level.Error(s.logger).Log("msg", "Failed to hash refresh token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to hash refresh token: %v", err)
 	}
 
-	// Create user with all fields including tokens
+	// Создаем запрос с user_id
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           req.Username,
 		HashedPassword:     hashedPassword,
 		Email:              req.Email,
 		HashedAccessToken:  hashedAccessToken,
 		HashedRefreshToken: hashedRefreshToken,
+		UserId:             &userID, // Используем тот же ID
 	}
 
 	addUserResp, err := s.dbClient.AddUser(ctx, addUserReq)
 	if err != nil || !addUserResp.GetSuccess() {
-		_ = level.Error(s.logger).Log(
-			"msg", "Failed to add user to user_database",
-			"username", req.Username,
-			"err", err,
-			"db_message", addUserResp.GetMessage(),
-		)
-		return nil, status.Errorf(codes.Internal, "failed to add user: %v", addUserResp.GetMessage())
+		_ = level.Error(s.logger).Log("msg", "Failed to add user", "err", err)
+		return nil, status.Errorf(codes.Internal, "failed to add user: %v", err)
 	}
 
-	// No need for separate update since we set tokens during creation
 	_ = level.Info(s.logger).Log(
 		"msg", "User registered successfully",
+		"user_id", userID,
 		"username", req.Username,
-		"accessTokenExpiry", accessExpiresAt,
-		"refreshTokenExpiry", refreshExpiresAt,
 	)
 
 	return &authv1.RegisterResponse{

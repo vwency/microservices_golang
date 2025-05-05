@@ -2,7 +2,7 @@ package transport
 
 import (
 	kitgrpc "github.com/go-kit/kit/transport/grpc"
-	"github.com/vwency/microservices_golang/internal/auth_service/endpoints" // <-- добавить этот импорт
+	"github.com/vwency/microservices_golang/internal/auth_service/endpoints"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	"google.golang.org/grpc"
 )

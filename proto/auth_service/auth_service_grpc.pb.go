@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Login_FullMethodName          = "/auth_service.AuthService/Login"
-	AuthService_Refresh_FullMethodName        = "/auth_service.AuthService/Refresh"
-	AuthService_Validate_FullMethodName       = "/auth_service.AuthService/Validate"
-	AuthService_Logout_FullMethodName         = "/auth_service.AuthService/Logout"
-	AuthService_GenerateTokens_FullMethodName = "/auth_service.AuthService/GenerateTokens"
-	AuthService_Register_FullMethodName       = "/auth_service.AuthService/Register"
+	AuthService_Login_FullMethodName               = "/auth_service.AuthService/Login"
+	AuthService_Refresh_FullMethodName             = "/auth_service.AuthService/Refresh"
+	AuthService_ValidateAccessToken_FullMethodName = "/auth_service.AuthService/ValidateAccessToken"
+	AuthService_Logout_FullMethodName              = "/auth_service.AuthService/Logout"
+	AuthService_GenerateTokens_FullMethodName      = "/auth_service.AuthService/GenerateTokens"
+	AuthService_Register_FullMethodName            = "/auth_service.AuthService/Register"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -33,7 +33,7 @@ const (
 type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
-	Validate(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error)
+	ValidateAccessToken(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	GenerateTokens(ctx context.Context, in *GenerateTokensRequest, opts ...grpc.CallOption) (*GenerateTokensResponse, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
@@ -67,10 +67,10 @@ func (c *authServiceClient) Refresh(ctx context.Context, in *RefreshRequest, opt
 	return out, nil
 }
 
-func (c *authServiceClient) Validate(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error) {
+func (c *authServiceClient) ValidateAccessToken(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ValidateResponse)
-	err := c.cc.Invoke(ctx, AuthService_Validate_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthService_ValidateAccessToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (c *authServiceClient) Register(ctx context.Context, in *RegisterRequest, o
 type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
-	Validate(context.Context, *ValidateRequest) (*ValidateResponse, error)
+	ValidateAccessToken(context.Context, *ValidateRequest) (*ValidateResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	GenerateTokens(context.Context, *GenerateTokensRequest) (*GenerateTokensResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
@@ -133,8 +133,8 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Lo
 func (UnimplementedAuthServiceServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
-func (UnimplementedAuthServiceServer) Validate(context.Context, *ValidateRequest) (*ValidateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Validate not implemented")
+func (UnimplementedAuthServiceServer) ValidateAccessToken(context.Context, *ValidateRequest) (*ValidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateAccessToken not implemented")
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
@@ -202,20 +202,20 @@ func _AuthService_Refresh_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Validate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthService_ValidateAccessToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ValidateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).Validate(ctx, in)
+		return srv.(AuthServiceServer).ValidateAccessToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Validate_FullMethodName,
+		FullMethod: AuthService_ValidateAccessToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Validate(ctx, req.(*ValidateRequest))
+		return srv.(AuthServiceServer).ValidateAccessToken(ctx, req.(*ValidateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,8 +290,8 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_Refresh_Handler,
 		},
 		{
-			MethodName: "Validate",
-			Handler:    _AuthService_Validate_Handler,
+			MethodName: "ValidateAccessToken",
+			Handler:    _AuthService_ValidateAccessToken_Handler,
 		},
 		{
 			MethodName: "Logout",

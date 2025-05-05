@@ -428,6 +428,7 @@ type AddUserRequest struct {
 	Email              string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	HashedRefreshToken string                 `protobuf:"bytes,4,opt,name=hashed_refresh_token,json=hashedRefreshToken,proto3" json:"hashed_refresh_token,omitempty"`
 	HashedAccessToken  string                 `protobuf:"bytes,5,opt,name=hashed_access_token,json=hashedAccessToken,proto3" json:"hashed_access_token,omitempty"`
+	UserId             *string                `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3,oneof" json:"user_id,omitempty"` // Добавляем новое поле
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -493,6 +494,13 @@ func (x *AddUserRequest) GetHashedRefreshToken() string {
 func (x *AddUserRequest) GetHashedAccessToken() string {
 	if x != nil {
 		return x.HashedAccessToken
+	}
+	return ""
+}
+
+func (x *AddUserRequest) GetUserId() string {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
 	}
 	return ""
 }
@@ -699,13 +707,16 @@ const file_user_database_user_database_proto_rawDesc = "" +
 	"\x0fhashed_password\x18\x05 \x01(\tR\x0ehashedPassword\x120\n" +
 	"\x14hashed_refresh_token\x18\x06 \x01(\tR\x12hashedRefreshToken\x12.\n" +
 	"\x13hashed_access_token\x18\a \x01(\tR\x11hashedAccessToken\x12\x18\n" +
-	"\amessage\x18\b \x01(\tR\amessage\"\xcd\x01\n" +
+	"\amessage\x18\b \x01(\tR\amessage\"\xf7\x01\n" +
 	"\x0eAddUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12'\n" +
 	"\x0fhashed_password\x18\x02 \x01(\tR\x0ehashedPassword\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x120\n" +
 	"\x14hashed_refresh_token\x18\x04 \x01(\tR\x12hashedRefreshToken\x12.\n" +
-	"\x13hashed_access_token\x18\x05 \x01(\tR\x11hashedAccessToken\"E\n" +
+	"\x13hashed_access_token\x18\x05 \x01(\tR\x11hashedAccessToken\x12\x1c\n" +
+	"\auser_id\x18\x06 \x01(\tH\x00R\x06userId\x88\x01\x01B\n" +
+	"\n" +
+	"\b_user_id\"E\n" +
 	"\x0fAddUserResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x8e\x01\n" +
@@ -773,6 +784,7 @@ func file_user_database_user_database_proto_init() {
 		return
 	}
 	file_user_database_user_database_proto_msgTypes[2].OneofWrappers = []any{}
+	file_user_database_user_database_proto_msgTypes[6].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

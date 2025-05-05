@@ -735,11 +735,11 @@ const file_auth_service_auth_service_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\x03R\texpiresAt2\xcf\x03\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt2\xda\x03\n" +
 	"\vAuthService\x12@\n" +
 	"\x05Login\x12\x1a.auth_service.LoginRequest\x1a\x1b.auth_service.LoginResponse\x12F\n" +
-	"\aRefresh\x12\x1c.auth_service.RefreshRequest\x1a\x1d.auth_service.RefreshResponse\x12I\n" +
-	"\bValidate\x12\x1d.auth_service.ValidateRequest\x1a\x1e.auth_service.ValidateResponse\x12C\n" +
+	"\aRefresh\x12\x1c.auth_service.RefreshRequest\x1a\x1d.auth_service.RefreshResponse\x12T\n" +
+	"\x13ValidateAccessToken\x12\x1d.auth_service.ValidateRequest\x1a\x1e.auth_service.ValidateResponse\x12C\n" +
 	"\x06Logout\x12\x1b.auth_service.LogoutRequest\x1a\x1c.auth_service.LogoutResponse\x12[\n" +
 	"\x0eGenerateTokens\x12#.auth_service.GenerateTokensRequest\x1a$.auth_service.GenerateTokensResponse\x12I\n" +
 	"\bRegister\x12\x1d.auth_service.RegisterRequest\x1a\x1e.auth_service.RegisterResponseB;Z9github.com/vwency/microservices_golang/proto/auth_serviceb\x06proto3"
@@ -774,13 +774,13 @@ var file_auth_service_auth_service_proto_goTypes = []any{
 var file_auth_service_auth_service_proto_depIdxs = []int32{
 	0,  // 0: auth_service.AuthService.Login:input_type -> auth_service.LoginRequest
 	2,  // 1: auth_service.AuthService.Refresh:input_type -> auth_service.RefreshRequest
-	4,  // 2: auth_service.AuthService.Validate:input_type -> auth_service.ValidateRequest
+	4,  // 2: auth_service.AuthService.ValidateAccessToken:input_type -> auth_service.ValidateRequest
 	6,  // 3: auth_service.AuthService.Logout:input_type -> auth_service.LogoutRequest
 	8,  // 4: auth_service.AuthService.GenerateTokens:input_type -> auth_service.GenerateTokensRequest
 	10, // 5: auth_service.AuthService.Register:input_type -> auth_service.RegisterRequest
 	1,  // 6: auth_service.AuthService.Login:output_type -> auth_service.LoginResponse
 	3,  // 7: auth_service.AuthService.Refresh:output_type -> auth_service.RefreshResponse
-	5,  // 8: auth_service.AuthService.Validate:output_type -> auth_service.ValidateResponse
+	5,  // 8: auth_service.AuthService.ValidateAccessToken:output_type -> auth_service.ValidateResponse
 	7,  // 9: auth_service.AuthService.Logout:output_type -> auth_service.LogoutResponse
 	9,  // 10: auth_service.AuthService.GenerateTokens:output_type -> auth_service.GenerateTokensResponse
 	11, // 11: auth_service.AuthService.Register:output_type -> auth_service.RegisterResponse

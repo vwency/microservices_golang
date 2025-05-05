@@ -54,7 +54,7 @@ func NewService(
 	jwtManager *jwt.JWTManager,
 	logger log.Logger,
 	tokenPepper string,
-) AuthService { // Changed return type to AuthService
+) AuthService {
 	return &service{
 		dbClient:    dbClient,
 		jwtManager:  jwtManager,

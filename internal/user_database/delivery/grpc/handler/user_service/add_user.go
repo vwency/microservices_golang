@@ -32,18 +32,25 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *databasev1.AddUserReq
 		return nil, status.Error(codes.InvalidArgument, "username, hashed password, and email are required")
 	}
 
+	if req.GetUserId() == "" {
+		h.logger.Error("user_id is required")
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
 	params := user_usecase.CreateUserParams{
+		UserID:         req.GetUserId(),
 		Username:       req.GetUsername(),
 		Email:          req.GetEmail(),
 		HashedPassword: req.GetHashedPassword(),
 		HashedRt:       req.GetHashedRefreshToken(),
 		HashedAt:       req.GetHashedAccessToken(),
-		CreatedAt:      time.Now().Format(time.RFC3339),
+		CreatedAt:      time.Now(),
 	}
 
 	if err := h.uc.CreateUser(params); err != nil {
 		h.logger.Error("failed to create user",
 			zap.String("username", req.GetUsername()),
+			zap.String("user_id", req.GetUserId()),
 			zap.Error(err))
 
 		st, ok := status.FromError(err)
@@ -59,7 +66,8 @@ func (h *AddUserHandler) AddUser(ctx context.Context, req *databasev1.AddUserReq
 	}
 
 	h.logger.Info("user created successfully",
-		zap.String("username", req.GetUsername()))
+		zap.String("username", req.GetUsername()),
+		zap.String("user_id", req.GetUserId()))
 
 	return &databasev1.AddUserResponse{
 		Success: true,
