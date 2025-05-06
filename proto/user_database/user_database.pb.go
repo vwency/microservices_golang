@@ -428,7 +428,7 @@ type AddUserRequest struct {
 	Email              string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	HashedRefreshToken string                 `protobuf:"bytes,4,opt,name=hashed_refresh_token,json=hashedRefreshToken,proto3" json:"hashed_refresh_token,omitempty"`
 	HashedAccessToken  string                 `protobuf:"bytes,5,opt,name=hashed_access_token,json=hashedAccessToken,proto3" json:"hashed_access_token,omitempty"`
-	UserId             *string                `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3,oneof" json:"user_id,omitempty"` // Добавляем новое поле
+	UserId             *string                `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3,oneof" json:"user_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
