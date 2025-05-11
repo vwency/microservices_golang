@@ -2,39 +2,75 @@ package service
 
 import (
 	"context"
+
+	"github.com/google/uuid"
+	"github.com/vwency/microservices_golang/internal/user_database/models"
 )
 
-func (s *userService) AddUser(ctx context.Context, req AddUserRequest) (AddUserResponse, error) {
-	// Хеширование пароля
-	hashedPassword, err := hashPassword(req.Password)
-	if err != nil {
-		s.logger.Log("error", "password hashing failed", "err", err)
-		return AddUserResponse{}, ErrInternal
-	}
-
-	user := User{
-		Username:       req.Username,
-		Email:          req.Email,
-		HashedPassword: hashedPassword,
-	}
-
-	// Проверка уникальности пользователя
-	if exists, _ := s.repo.UserExists(ctx, req.Username, req.Email); exists {
-		s.logger.Log("error", "user already exists")
-		return AddUserResponse{}, ErrAlreadyExists
-	}
-
-	userID, err := s.repo.CreateUser(ctx, user)
-	if err != nil {
-		s.logger.Log("error", "user creation failed", "err", err)
-		return AddUserResponse{}, ErrInternal
-	}
-
-	s.logger.Log("msg", "user created", "userID", userID)
-	return AddUserResponse{UserID: userID}, nil
+type UserService struct {
+	repo UserRepository
 }
 
-func hashPassword(password string) (string, error) {
-	// Реальная реализация должна использовать bcrypt или аналоги
-	return "hashed_" + password, nil
+type UserRepository interface {
+	RunMigrations() error
+	GetUserByID(id string) (*models.User, error)
+	GetUserByUsernameOrEmail(username, email string) (*models.User, error)
+	AddUser(user *models.User) error
+	UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error
+}
+
+// Внутри пакета service
+type AddUserRequest struct {
+	Username           string
+	Email              string
+	HashedPassword     string
+	HashedRefreshToken string
+	HashedAccessToken  string
+	UserID             string
+}
+
+type AddUserResponse struct {
+	Success bool
+	Message string
+}
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func (s *UserService) AddUserRequest(ctx context.Context, req AddUserRequest) (*AddUserResponse, error) {
+	user := &models.User{
+		Username:           req.Username,
+		Email:              strPtr(req.Email),
+		HashedPassword:     req.HashedPassword,
+		HashedRefreshToken: req.HashedRefreshToken,
+		HashedAccessToken:  req.HashedAccessToken,
+	}
+
+	if req.UserID != "" {
+		user.ID, _ = uuid.Parse(req.UserID) // если ID задан, парсим UUID
+	}
+
+	// Check if user exists
+	existingUser, err := s.repo.GetUserByUsernameOrEmail(req.Username, req.Email)
+	if err != nil {
+		return nil, err
+	}
+	if existingUser != nil {
+		return &AddUserResponse{
+			Success: false,
+			Message: "user already exists",
+		}, nil
+	}
+
+	// Add new user
+	err = s.repo.AddUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AddUserResponse{
+		Success: true,
+		Message: "user created successfully",
+	}, nil
 }

@@ -3,14 +3,13 @@ package transport
 import (
 	"context"
 
-	gokitgrpc "github.com/go-kit/kit/transport/grpc"
+	kitgrpc "github.com/go-kit/kit/transport/grpc"
 	"github.com/vwency/microservices_golang/internal/user_database/endpoints"
-	"github.com/vwency/microservices_golang/internal/user_database/service"
 	pb "github.com/vwency/microservices_golang/proto/user_database"
 )
 
-func makeAddUserHandler(ep endpoints.Endpoints, opts ...gokitgrpc.ServerOption) *gokitgrpc.Server {
-	return gokitgrpc.NewServer(
+func makeAddUserHandler(ep endpoints.Endpoints, opts ...kitgrpc.ServerOption) *kitgrpc.Server {
+	return kitgrpc.NewServer(
 		ep.AddUser,
 		decodeAddUserRequest,
 		encodeAddUserResponse,
@@ -18,30 +17,22 @@ func makeAddUserHandler(ep endpoints.Endpoints, opts ...gokitgrpc.ServerOption) 
 	)
 }
 
-func decodeAddUserRequest(_ context.Context, req interface{}) (interface{}, error) {
-	r := req.(*pb.AddUserRequest)
-	return service.AddUserRequest{
-		UserID:             r.GetUserId(),
-		Username:           r.GetUsername(),
-		Email:              r.GetEmail(),
-		HashedPassword:     r.GetHashedPassword(),
-		HashedRefreshToken: r.GetHashedRefreshToken(),
-		HashedAccessToken:  r.GetHashedAccessToken(),
+func decodeAddUserRequest(_ context.Context, request interface{}) (interface{}, error) {
+	req := request.(*pb.AddUserRequest)
+	return endpoints.AddUserRequest{
+		Username:           req.GetUsername(),
+		Email:              req.GetEmail(),
+		HashedPassword:     req.GetHashedPassword(),
+		HashedRefreshToken: req.GetHashedRefreshToken(),
+		HashedAccessToken:  req.GetHashedAccessToken(),
+		UserID:             req.GetUserId(),
 	}, nil
 }
 
-func encodeAddUserResponse(_ context.Context, resp interface{}) (interface{}, error) {
-	r := resp.(service.AddUserResponse)
+func encodeAddUserResponse(_ context.Context, response interface{}) (interface{}, error) {
+	resp := response.(endpoints.AddUserResponse)
 	return &pb.AddUserResponse{
-		Success: r.Success,
-		Message: r.Message,
+		Success: resp.Success,
+		Message: resp.Message,
 	}, nil
-}
-
-func (s *grpcServer) AddUser(ctx context.Context, req *pb.AddUserRequest) (*pb.AddUserResponse, error) {
-	_, res, err := s.addUser.ServeGRPC(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return res.(*pb.AddUserResponse), nil
 }

@@ -8,29 +8,33 @@ import (
 )
 
 type AddUserRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	// другие поля
+	Username           string
+	Email              string
+	HashedPassword     string
+	HashedRefreshToken string
+	HashedAccessToken  string
+	UserID             string
 }
 
 type AddUserResponse struct {
-	User *service.User `json:"user"`
-	Err  error         `json:"error,omitempty"`
+	Success bool
+	Message string
 }
-
-func (r AddUserResponse) error() error { return r.Err }
 
 func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(AddUserRequest)
-		user, err := s.AddUser(ctx, service.AddUserRequest{
-			Username: req.Username,
-			Email:    req.Email,
-			// другие поля
+		res, err := s.AddUser(ctx, service.AddUserRequest{
+			Username:           req.Username,
+			Email:              req.Email,
+			HashedPassword:     req.HashedPassword,
+			HashedRefreshToken: req.HashedRefreshToken,
+			HashedAccessToken:  req.HashedAccessToken,
+			UserID:             req.UserID,
 		})
 		if err != nil {
-			return AddUserResponse{Err: err}, nil
+			return AddUserResponse{Success: false, Message: err.Error()}, nil
 		}
-		return AddUserResponse{User: user}, nil
+		return AddUserResponse{Success: res.Success, Message: res.Message}, nil
 	}
 }
