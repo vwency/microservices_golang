@@ -13,6 +13,7 @@ type grpcServer struct {
 	getUser     kitgrpc.Handler
 	getUserByID kitgrpc.Handler
 	updateUser  kitgrpc.Handler
+	deleteUser  kitgrpc.Handler
 	initDB      kitgrpc.Handler
 }
 
@@ -22,6 +23,7 @@ func RegisterGRPCServer(server *grpc.Server, ep endpoints.Endpoints, opts ...kit
 		getUser:     makeGetUserHandler(ep, opts...),
 		getUserByID: makeGetUserByIDHandler(ep, opts...),
 		updateUser:  makeUpdateUserHandler(ep, opts...),
+		deleteUser:  makeDeleteUserHandler(ep, opts...),
 		initDB:      makeInitDatabaseHandler(ep, opts...),
 	})
 }

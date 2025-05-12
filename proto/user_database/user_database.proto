@@ -7,9 +7,10 @@ option go_package = "github.com/vwency/microservices_golang/proto/user_database"
 service DatabaseInitService {
   rpc InitDatabase (InitRequest) returns (InitResponse);
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
-  rpc GetUserByID (GetUserByIDRequest) returns (GetUserByIDResponse); // New RPC method to get user by ID
+  rpc GetUserByID (GetUserByIDRequest) returns (GetUserByIDResponse);
   rpc AddUser (AddUserRequest) returns (AddUserResponse);
   rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 message InitRequest {
@@ -38,11 +39,11 @@ message GetUserResponse {
   string message = 8;
 }
 
-message GetUserByIDRequest {// New message for getting user by user_id
+message GetUserByIDRequest {
   string user_id = 1;
 }
 
-message GetUserByIDResponse {// New response message for getting user by user_id
+message GetUserByIDResponse {
   bool found = 1;
   string user_id = 2;
   string username = 3;
@@ -74,6 +75,16 @@ message UpdateUserRequest {
 }
 
 message UpdateUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// New messages for DeleteUser RPC
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message DeleteUserResponse {
   bool success = 1;
   string message = 2;
 }
