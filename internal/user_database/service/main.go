@@ -20,11 +20,6 @@ type userService struct {
 	logger log.Logger
 }
 
-// AddUser implements Service.
-func (s *userService) AddUser(ctx context.Context, request AddUserRequest) (AddUserResponse, error) {
-	panic("unimplemented")
-}
-
 func NewService(repo repository.Repository, logger log.Logger) Service {
 	return &userService{
 		repo:   repo,
