@@ -5,7 +5,6 @@ import (
 
 	gokitgrpc "github.com/go-kit/kit/transport/grpc"
 	"github.com/vwency/microservices_golang/internal/user_database/endpoints"
-	"github.com/vwency/microservices_golang/internal/user_database/service"
 	pb "github.com/vwency/microservices_golang/proto/user_database"
 )
 
@@ -20,21 +19,20 @@ func makeUpdateUserHandler(ep endpoints.Endpoints, opts ...gokitgrpc.ServerOptio
 
 func decodeUpdateUserRequest(_ context.Context, req interface{}) (interface{}, error) {
 	r := req.(*pb.UpdateUserRequest)
-	return service.UpdateUserRequest{
+	return endpoints.UpdateUserRequest{
 		UserID:             r.GetUserId(),
-		Username:           r.GetUsername(),
-		Email:              r.GetEmail(),
-		HashedPassword:     r.GetHashedPassword(),
 		HashedRefreshToken: r.GetHashedRefreshToken(),
 		HashedAccessToken:  r.GetHashedAccessToken(),
 	}, nil
 }
 
 func encodeUpdateUserResponse(_ context.Context, resp interface{}) (interface{}, error) {
-	r := resp.(service.UpdateUserResponse)
+	r := resp.(endpoints.UpdateUserResponse)
+	if r.Err != nil {
+		return nil, r.Err
+	}
 	return &pb.UpdateUserResponse{
 		Success: r.Success,
-		Message: r.Message,
 	}, nil
 }
 

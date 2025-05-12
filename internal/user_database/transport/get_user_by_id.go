@@ -28,14 +28,12 @@ func decodeGetUserByIDRequest(_ context.Context, req interface{}) (interface{}, 
 func encodeGetUserByIDResponse(_ context.Context, resp interface{}) (interface{}, error) {
 	r := resp.(service.GetUserByIDResponse)
 	return &pb.GetUserByIDResponse{
-		User: &pb.User{
-			UserId:             r.User.UserID,
-			Username:           r.User.Username,
-			Email:              r.User.Email,
-			HashedPassword:     r.User.HashedPassword,
-			HashedRefreshToken: r.User.HashedRefreshToken,
-			HashedAccessToken:  r.User.HashedAccessToken,
-		},
+		UserId:             r.UserID,
+		Username:           r.Username,
+		Email:              r.Email,
+		HashedPassword:     r.HashedPassword,
+		HashedRefreshToken: r.HashedRefreshToken,
+		HashedAccessToken:  r.HashedAccessToken,
 	}, nil
 }
 

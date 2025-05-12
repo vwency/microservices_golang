@@ -37,7 +37,6 @@ func (r *UserRepositoryImpl) GetUserByID(id string) (*models.User, error) {
 	}
 }
 
-// GetUserByUsernameOrEmail retrieves a user by their username or email.
 func (r *UserRepositoryImpl) GetUserByUsernameOrEmail(username, email string) (*models.User, error) {
 	var user models.User
 	query := r.db.Model(&models.User{})
@@ -76,7 +75,6 @@ func (r *UserRepositoryImpl) AddUser(user *models.User) error {
 	}
 }
 
-// UpdateUserTokens updates the refresh and access tokens for a user.
 func (r *UserRepositoryImpl) UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error {
 	result := r.db.Model(&models.User{}).
 		Where("id = ?", userID).
@@ -87,6 +85,17 @@ func (r *UserRepositoryImpl) UpdateUserTokens(userID, hashedRefreshToken, hashed
 
 	if result.Error != nil {
 		return status.Errorf(codes.Internal, "failed to update tokens: %v", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return status.Error(codes.NotFound, "user not found")
+	}
+	return nil
+}
+
+func (r *UserRepositoryImpl) DeleteUser(id string) error {
+	result := r.db.Delete(&models.User{}, "id = ?", id)
+	if result.Error != nil {
+		return status.Errorf(codes.Internal, "failed to delete user: %v", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return status.Error(codes.NotFound, "user not found")
