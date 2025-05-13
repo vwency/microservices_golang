@@ -10,19 +10,19 @@ service JwtService {
 }
 
 message GenerateTokenRequest {
-  optional string secret = 1;  // Сделали опциональным
+  optional string secret = 1;
   map<string, string> payload = 2;
-  int64 expires_in = 3; // Время жизни токена в секундах (опционально)
+  int64 expires_in = 3;
 }
 
 message GenerateTokenResponse {
   string token = 1;
-  int64 expires_at = 2; // Unix timestamp времени истечения
+  int64 expires_at = 2;
 }
 
 message ValidateTokenRequest {
   string token = 1;
-  optional string secret = 2;  // Сделали опциональным
+  optional string secret = 2;
 }
 
 message ValidateTokenResponse {
@@ -30,5 +30,5 @@ message ValidateTokenResponse {
   bool valid = 2;
   map<string, string> payload = 3;
   string error = 4;
-  int64 expires_at = 5; // Добавлено поле с временем истечения
+  int64 expires_at = 5;
 }

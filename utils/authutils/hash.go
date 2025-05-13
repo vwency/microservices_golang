@@ -42,10 +42,8 @@ func GenHash(userID, password string, p *Argon2Params) (encodedHash string, err 
 		return "", err
 	}
 
-	// Используем userID как перец для хэширования
 	pepper := []byte(userID)
 
-	// Создаем закодированный пароль с перцем
 	pepperedPassword := append([]byte(password), pepper...)
 
 	hash := argon2.IDKey(

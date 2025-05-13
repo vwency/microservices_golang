@@ -24,7 +24,6 @@ type GetUserResponse struct {
 }
 
 func (s *userService) GetUser(ctx context.Context, req GetUserRequest) (GetUserResponse, error) {
-	// Validate request
 	if req.Username == "" && req.Email == "" && req.UserID == "" {
 		return GetUserResponse{}, status.Error(codes.InvalidArgument, "username, email or userID must be provided")
 	}

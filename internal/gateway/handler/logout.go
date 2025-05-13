@@ -25,7 +25,6 @@ func LogoutHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 			return
 		}
 
-		// Читаем access token из Authorization Header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Missing or invalid Authorization header", http.StatusUnauthorized)
@@ -33,7 +32,6 @@ func LogoutHandler(authService *service.AuthServiceClient) http.HandlerFunc {
 		}
 		accessToken := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Выполняем разлогинивание (вся валидация будет происходить в auth service)
 		resp, err := authService.Logout(r.Context(), logoutReq.Username, accessToken)
 		if err != nil {
 			http.Error(w, "Failed to logout", http.StatusInternalServerError)

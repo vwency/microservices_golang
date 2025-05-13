@@ -1,4 +1,3 @@
-// endpoints/update_user.go
 package endpoints
 
 import (

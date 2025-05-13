@@ -32,7 +32,7 @@ func (h *GetUserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*
 
 	params := user_usecase.UserParams{
 		UserID:   req.GetUserId(),
-		Username: req.GetUsername(), // req.GetUsername() вернет string
+		Username: req.GetUsername(),
 		Email:    req.GetEmail(),
 	}
 

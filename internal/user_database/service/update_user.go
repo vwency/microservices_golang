@@ -20,7 +20,6 @@ type UpdateUserResponse struct {
 }
 
 func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (UpdateUserResponse, error) {
-	// Validate the request
 	if req.UserID == "" {
 		return UpdateUserResponse{
 			Success: false,
@@ -35,7 +34,6 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 		}, status.Error(codes.InvalidArgument, "both tokens are required")
 	}
 
-	// Check if user exists
 	if _, err := s.repo.UserRepo.GetUserByID(req.UserID); err != nil {
 		level.Error(s.logger).Log(
 			"msg", "failed to get user for update",
@@ -47,8 +45,6 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 			Message: "user not found",
 		}, status.Errorf(codes.NotFound, "user not found: %v", err)
 	}
-
-	// Update tokens
 	if err := s.repo.UserRepo.UpdateUserTokens(req.UserID, req.HashedRefreshToken, req.HashedAccessToken); err != nil {
 		level.Error(s.logger).Log(
 			"msg", "failed to update user tokens",

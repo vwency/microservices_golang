@@ -1,4 +1,3 @@
-// service/init_db.go
 package service
 
 import (

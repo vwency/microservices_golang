@@ -15,14 +15,11 @@ import (
 var Cfg config.ServiceConfig
 
 func main() {
-	// Инициализация конфигурации
 	env := config.DetectEnv()
 	config.Init(env, "jwt_service", &Cfg)
 
-	// Инициализация логгера
 	logger.Init(Cfg.App.LogLevel)
 
-	// Инициализация gRPC сервера
 	port := Cfg.App.Port
 	logger.Info("Starting gRPC server on port " + port)
 
@@ -31,22 +28,17 @@ func main() {
 		logger.Fatal("failed to listen: %v", err)
 	}
 
-	// Интерсепторы для gRPC
 	interceptors := []grpc.UnaryServerInterceptor{}
 
-	// Инициализация gRPC сервера
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(interceptors...),
 	)
 
-	// Инициализация Usecase и Handler для jwt_service
 	jwtUsecase := usecase_jwt.NewJwtUsecase()
 	jwtHandler := handler_jwt.NewJwtHandler(jwtUsecase)
 
-	// Регистрация сервиса в gRPC сервере
 	jwt_service.RegisterJwtServiceServer(grpcServer, jwtHandler)
 
-	// Запуск сервера
 	logger.Info("gRPC server is running on port " + port)
 
 	if err := grpcServer.Serve(lis); err != nil {
@@ -54,7 +46,6 @@ func main() {
 	}
 }
 
-// Утилита для парсинга длительности с дефолтным значением
 func parseDurationOrDefault(durationStr string, defaultValue time.Duration) time.Duration {
 	if durationStr == "" {
 		return defaultValue

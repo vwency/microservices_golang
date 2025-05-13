@@ -24,7 +24,6 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		return nil, status.Error(codes.InvalidArgument, "username, password and email are required")
 	}
 
-	// Генерируем user_id один раз
 	userID := uuid.New().String()
 
 	hashedPassword, err := authutils.GenHash(req.Username, req.Password, nil)
@@ -33,9 +32,8 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", err)
 	}
 
-	// Генерируем токены с user_id
 	payload := map[string]interface{}{
-		"UserID": userID, // Используем сгенерированный ID
+		"UserID": userID,
 		"Roles":  []interface{}{"user"},
 	}
 
@@ -51,7 +49,6 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		return nil, status.Errorf(codes.Internal, "failed to generate refresh token: %v", err)
 	}
 
-	// Хешируем токены
 	hashedAccessToken, err := authutils.GenHash(s.tokenPepper, accessToken, nil)
 	if err != nil {
 		_ = level.Error(s.logger).Log("msg", "Failed to hash access token", "err", err)
@@ -64,14 +61,13 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		return nil, status.Errorf(codes.Internal, "failed to hash refresh token: %v", err)
 	}
 
-	// Создаем запрос с user_id
 	addUserReq := &databasev1.AddUserRequest{
 		Username:           req.Username,
 		HashedPassword:     hashedPassword,
 		Email:              req.Email,
 		HashedAccessToken:  hashedAccessToken,
 		HashedRefreshToken: hashedRefreshToken,
-		UserId:             &userID, // Используем тот же ID
+		UserId:             &userID,
 	}
 
 	addUserResp, err := s.dbClient.AddUser(ctx, addUserReq)

@@ -19,14 +19,12 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 	ip := getIPFromContext(ctx)
 	s.logger.Log("msg", "Attempting token refresh", "ip", ip)
 
-	// Validate the refresh token
 	claims, err := s.jwtManager.ValidateToken(refreshToken)
 	if err != nil {
 		s.logger.Log("msg", "Invalid refresh token", "err", err, "ip", ip)
 		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	// Extract UserID and Roles from claims
 	userID, ok := claims["UserID"].(string)
 	if !ok {
 		s.logger.Log("msg", "Invalid claim: UserID not found or not a string", "ip", ip)
@@ -39,7 +37,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		return nil, errors.New("invalid claim: Roles not found or not an array")
 	}
 
-	// Convert roles to []string
 	var roles []string
 	for _, role := range rolesInterface {
 		roleStr, ok := role.(string)
@@ -50,7 +47,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		roles = append(roles, roleStr)
 	}
 
-	// Fetch user details
 	getUserResp, err := s.dbClient.GetUser(ctx, &databasev1.GetUserRequest{UserId: &userID})
 	if err != nil {
 		s.logger.Log("msg", "UserDatabase operation failed", "user_id", userID, "err", err, "ip", ip)
@@ -62,7 +58,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		return nil, ErrUserNotFound
 	}
 
-	// Verify refresh token matches stored hash
 	match, err := authutils.ComparePasswordAndHash(s.tokenPepper, refreshToken, getUserResp.HashedRefreshToken)
 	if err != nil {
 		s.logger.Log("msg", "Token comparison failed", "user_id", userID, "err", err, "ip", ip)
@@ -74,7 +69,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		return nil, ErrInvalidToken
 	}
 
-	// Generate new tokens
 	payload := map[string]interface{}{
 		"UserID": userID,
 		"Roles":  roles,
@@ -92,7 +86,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		return nil, fmt.Errorf("%w: refresh token", ErrTokenGeneration)
 	}
 
-	// Hash and store new tokens
 	hashedAccessToken, err := authutils.GenHash(s.tokenPepper, accessToken, nil)
 	if err != nil {
 		s.logger.Log("msg", "Failed to hash access token", "user_id", userID, "err", err, "ip", ip)
@@ -105,7 +98,6 @@ func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*aut
 		return nil, fmt.Errorf("failed to secure tokens: %w", err)
 	}
 
-	// Update user tokens in database
 	_, err = s.dbClient.UpdateUser(ctx, &databasev1.UpdateUserRequest{
 		UserId:             userID,
 		HashedRefreshToken: hashedRefreshToken,

@@ -79,7 +79,6 @@ message UpdateUserResponse {
   string message = 2;
 }
 
-// New messages for DeleteUser RPC
 message DeleteUserRequest {
   string user_id = 1;
 }

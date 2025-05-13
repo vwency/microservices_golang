@@ -20,7 +20,6 @@ func (u *JwtUsecase) GenerateToken(secret string, payload map[string]string, exp
 		claims[key] = value
 	}
 
-	// Limit maximum token lifetime
 	maxExpiresIn := time.Duration(math.MaxInt64/1000000000) * time.Second
 	if expiresIn > maxExpiresIn {
 		expiresIn = maxExpiresIn
@@ -29,7 +28,6 @@ func (u *JwtUsecase) GenerateToken(secret string, payload map[string]string, exp
 	expirationTime := time.Now().Add(expiresIn)
 	claims["exp"] = expirationTime.Unix()
 
-	// Create token with appropriate signing method
 	var token *jwt.Token
 	if secret == "" {
 		token = jwt.NewWithClaims(jwt.SigningMethodNone, claims)
@@ -37,14 +35,11 @@ func (u *JwtUsecase) GenerateToken(secret string, payload map[string]string, exp
 		token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	}
 
-	// Sign the token
 	var signedToken string
 	var err error
 	if secret == "" {
-		// For unsigned tokens
 		signedToken, err = token.SignedString(jwt.UnsafeAllowNoneSignatureType)
 	} else {
-		// For signed tokens
 		signedToken, err = token.SignedString([]byte(secret))
 	}
 
@@ -57,7 +52,6 @@ func (u *JwtUsecase) GenerateToken(secret string, payload map[string]string, exp
 func (u *JwtUsecase) ValidateToken(tokenString string, secret string) (string, map[string]string, int64, error) {
 	parseOptions := []jwt.ParserOption{jwt.WithoutClaimsValidation()}
 
-	// Determine allowed signing methods based on whether we have a secret
 	var allowedMethods []string
 	if secret == "" {
 		allowedMethods = []string{"none"}

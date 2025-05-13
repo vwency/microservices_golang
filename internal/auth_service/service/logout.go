@@ -29,7 +29,6 @@ func (s *service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 		return nil, status.Error(codes.InvalidArgument, "username and access_token are required")
 	}
 
-	// Get user from database
 	getUserResp, err := s.dbClient.GetUser(ctx, &databasev1.GetUserRequest{
 		Username: &req.Username,
 	})
@@ -50,7 +49,6 @@ func (s *service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	// Check if user is already logged out
 	if isTokenEmptyOrNone(getUserResp.HashedAccessToken) {
 		_ = level.Info(s.logger).Log(
 			"msg", "User already logged out",
@@ -63,7 +61,6 @@ func (s *service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 		}, nil
 	}
 
-	// Compare the provided access token with the stored one
 	match, err := authutils.ComparePasswordAndHash(s.tokenPepper, req.AccessToken, getUserResp.HashedAccessToken)
 	if err != nil {
 		_ = level.Error(s.logger).Log(
@@ -82,7 +79,6 @@ func (s *service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 		return nil, status.Error(codes.Unauthenticated, "access token mismatch")
 	}
 
-	// Clear tokens in the database
 	logoutRequest := &databasev1.UpdateUserRequest{
 		UserId:             getUserResp.UserId,
 		HashedRefreshToken: "none",
@@ -97,7 +93,6 @@ func (s *service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 			"err", err,
 		)
 
-		// If it's a validation error, try with a different token format
 		if isTokenValidationError(err) {
 			_ = level.Warn(s.logger).Log(
 				"msg", "Retrying logout with empty tokens instead of 'none'",

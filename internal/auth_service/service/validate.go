@@ -11,30 +11,24 @@ import (
 	"github.com/vwency/microservices_golang/utils/authutils"
 )
 
-// ... (остальные типы и константы из main.go остаются без изменений)
-
-// ValidateAccessToken проверяет access token на валидность и возвращает результат.
 func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateRequest) (*authv1.ValidateResponse, error) {
 	token := req.GetAccessToken()
 	if token == "" {
 		return nil, errors.New("access token is required")
 	}
 
-	// 1. Проверка токена через JWTManager
 	claims, err := s.jwtManager.ValidateToken(token)
 	if err != nil {
 		s.logger.Log("error", fmt.Sprintf("Failed to validate token: %v", err), "token", token)
 		return nil, fmt.Errorf("token validation failed: %w", err)
 	}
 
-	// 2. Извлечение userID
 	userID, ok := claims["UserID"].(string)
 	if !ok || userID == "" {
 		s.logger.Log("error", "Invalid or missing UserID in claims", "claims", claims)
 		return nil, errors.New("invalid token: userID missing or not a string")
 	}
 
-	// 3. Извлечение ролей
 	rolesRaw, ok := claims["Roles"].([]interface{})
 	if !ok {
 		s.logger.Log("error", "Invalid or missing Roles in claims", "claims", claims)
@@ -51,7 +45,6 @@ func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateR
 		roles = append(roles, roleStr)
 	}
 
-	// 4. Получение пользователя из базы
 	getUserResp, err := s.dbClient.GetUser(ctx, &databasev1.GetUserRequest{UserId: &userID})
 	if err != nil {
 		s.logger.Log("error", fmt.Sprintf("Failed to fetch user: %v", err), "userID", userID)
@@ -63,7 +56,6 @@ func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateR
 		return nil, errors.New("user not found")
 	}
 
-	// 5. Проверка совпадения токена с хэшем из базы
 	match, err := authutils.ComparePasswordAndHash(s.tokenPepper, token, getUserResp.HashedAccessToken)
 	if err != nil {
 		s.logger.Log("error", fmt.Sprintf("Token hash comparison failed: %v", err), "userID", userID)
@@ -75,7 +67,6 @@ func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateR
 		return nil, errors.New("invalid token: hash mismatch")
 	}
 
-	// 6. Проверка срока действия токена
 	expiryFloat, ok := claims["exp"].(float64)
 	if !ok {
 		s.logger.Log("error", "Invalid or missing expiry in claims", "claims", claims)
@@ -88,7 +79,6 @@ func (s *service) ValidateAccessToken(ctx context.Context, req *authv1.ValidateR
 		return nil, errors.New("access token has expired")
 	}
 
-	// Успешная валидация
 	return &authv1.ValidateResponse{
 		Valid:     true,
 		UserId:    userID,

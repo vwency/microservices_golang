@@ -31,7 +31,6 @@ func (h *GetUserByIDHandler) GetUserByID(ctx context.Context, req *pb.GetUserByI
 	userID := req.GetUserId()
 	user, err := h.uc.GetUserByID(userID)
 	if err != nil {
-		// Check if the error is NotFound
 		if status.Code(err) == codes.NotFound {
 			h.logger.Info("user not found", zap.String("user_id", userID))
 			return &pb.GetUserByIDResponse{
@@ -41,7 +40,7 @@ func (h *GetUserByIDHandler) GetUserByID(ctx context.Context, req *pb.GetUserByI
 		}
 
 		h.logger.Error("failed to get user", zap.String("user_id", userID), zap.Error(err))
-		return nil, err // Propagate the original error since it already has a status code
+		return nil, err
 	}
 
 	email := ""
