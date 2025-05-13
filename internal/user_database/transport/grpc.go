@@ -9,21 +9,21 @@ import (
 
 type grpcServer struct {
 	pb.UnimplementedDatabaseInitServiceServer
-	addUser     kitgrpc.Handler
-	getUser     kitgrpc.Handler
-	getUserByID kitgrpc.Handler
-	updateUser  kitgrpc.Handler
-	deleteUser  kitgrpc.Handler
-	initDB      kitgrpc.Handler
+	addUser      kitgrpc.Handler
+	getUser      kitgrpc.Handler
+	getUserByID  kitgrpc.Handler
+	updateUser   kitgrpc.Handler
+	deleteUser   kitgrpc.Handler
+	initDatabase kitgrpc.Handler
 }
 
 func RegisterGRPCServer(server *grpc.Server, ep endpoints.Endpoints, opts ...kitgrpc.ServerOption) {
 	pb.RegisterDatabaseInitServiceServer(server, &grpcServer{
-		addUser:     makeAddUserHandler(ep, opts...),
-		getUser:     makeGetUserHandler(ep, opts...),
-		getUserByID: makeGetUserByIDHandler(ep, opts...),
-		updateUser:  makeUpdateUserHandler(ep, opts...),
-		deleteUser:  makeDeleteUserHandler(ep, opts...),
-		initDB:      makeInitDatabaseHandler(ep, opts...),
+		addUser:      makeAddUserHandler(ep, opts...),
+		getUser:      makeGetUserHandler(ep, opts...),
+		getUserByID:  makeGetUserByIDHandler(ep, opts...),
+		updateUser:   makeUpdateUserHandler(ep, opts...),
+		deleteUser:   makeDeleteUserHandler(ep, opts...),
+		initDatabase: makeInitDatabaseHandler(ep, opts...),
 	})
 }

@@ -8,6 +8,7 @@ import (
 )
 
 type Service interface {
+	InitDatabase(ctx context.Context, req InitDatabaseRequest) (InitDatabaseResponse, error)
 	AddUser(ctx context.Context, request AddUserRequest) (AddUserResponse, error)
 	GetUser(ctx context.Context, request GetUserRequest) (GetUserResponse, error)
 	GetUserByID(ctx context.Context, request GetUserByIDRequest) (GetUserByIDResponse, error)
