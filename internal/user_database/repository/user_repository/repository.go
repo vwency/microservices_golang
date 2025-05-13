@@ -8,4 +8,5 @@ type UserRepository interface {
 	GetUserByUsernameOrEmail(username, email string) (*models.User, error)
 	AddUser(user *models.User) error
 	UpdateUserTokens(userID, hashedRefreshToken, hashedAccessToken string) error
+	DeleteUser(id string) error
 }

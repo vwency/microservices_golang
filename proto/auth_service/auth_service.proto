@@ -73,7 +73,7 @@ message RegisterResponse {
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
-  rpc Validate(ValidateRequest) returns (ValidateResponse);
+  rpc ValidateAccessToken(ValidateRequest) returns (ValidateResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc GenerateTokens(GenerateTokensRequest) returns (GenerateTokensResponse);
 

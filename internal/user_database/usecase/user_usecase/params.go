@@ -1,6 +1,9 @@
 package user_usecase
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type UserParams struct {
 	UserID   string
@@ -9,14 +12,14 @@ type UserParams struct {
 }
 
 type CreateUserParams struct {
+	UserID         string
 	Username       string
 	Email          string
 	HashedPassword string
 	HashedRt       string
 	HashedAt       string
-	CreatedAt      string
+	CreatedAt      time.Time
 }
-
 type UpdateTokensParams struct {
 	UserID             string
 	HashedRefreshToken string

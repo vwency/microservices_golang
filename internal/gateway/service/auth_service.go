@@ -54,7 +54,7 @@ func (c *AuthServiceClient) Validate(ctx context.Context, token string) (*auth_s
 	req := &auth_service.ValidateRequest{
 		AccessToken: token,
 	}
-	return c.Client.Validate(ctx, req)
+	return c.Client.ValidateAccessToken(ctx, req)
 }
 
 func (c *AuthServiceClient) Refresh(ctx context.Context, refreshToken string) (*auth_service.RefreshResponse, error) {
