@@ -25,17 +25,23 @@ type DeleteUserResponse struct {
 
 func (s *userService) DeleteUser(ctx context.Context, req DeleteUserRequest) (DeleteUserResponse, error) {
 	if req.UserID == "" {
-		return DeleteUserResponse{Success: false}, ErrInvalidArgument
+		return DeleteUserResponse{Success: false}, status.Errorf(codes.InvalidArgument, "userID is required")
 	}
 
-	err := s.repo.UserRepo.DeleteUser(req.UserID)
+	user, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			level.Warn(s.logger).Log("msg", "user not found", "userID", req.UserID)
-			return DeleteUserResponse{Success: false}, ErrNotFound
-		}
-		level.Error(s.logger).Log("msg", "deletion failed", "userID", req.UserID, "err", err)
-		return DeleteUserResponse{Success: false}, ErrInternal
+		level.Error(s.logger).Log("msg", "failed to get user", "userID", req.UserID, "err", err)
+		return DeleteUserResponse{Success: false}, status.Errorf(codes.Internal, "failed to get user: %v", err)
+	}
+	if user == nil {
+		level.Warn(s.logger).Log("msg", "user not found", "userID", req.UserID)
+		return DeleteUserResponse{Success: false}, status.Errorf(codes.NotFound, "user with ID %s not found", req.UserID)
+	}
+
+	err = s.repo.UserRepo.DeleteUser(req.UserID)
+	if err != nil {
+		level.Error(s.logger).Log("msg", "failed to delete user", "userID", req.UserID, "err", err)
+		return DeleteUserResponse{Success: false}, status.Errorf(codes.Internal, "failed to delete user: %v", err)
 	}
 
 	level.Info(s.logger).Log("msg", "user deleted", "userID", req.UserID)

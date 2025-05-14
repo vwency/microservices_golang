@@ -31,3 +31,11 @@ func encodeInitDatabaseResponse(_ context.Context, response interface{}) (interf
 		Message: resp.Message,
 	}, nil
 }
+
+func (s *grpcServer) InitDatabase(ctx context.Context, req *pb.InitRequest) (*pb.InitResponse, error) {
+	_, resp, err := s.initDatabase.ServeGRPC(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*pb.InitResponse), nil
+}

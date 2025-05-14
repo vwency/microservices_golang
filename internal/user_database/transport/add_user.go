@@ -36,3 +36,11 @@ func encodeAddUserResponse(_ context.Context, response interface{}) (interface{}
 		Message: resp.Message,
 	}, nil
 }
+
+func (s *grpcServer) AddUser(ctx context.Context, req *pb.AddUserRequest) (*pb.AddUserResponse, error) {
+	_, resp, err := s.addUser.ServeGRPC(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*pb.AddUserResponse), nil
+}
