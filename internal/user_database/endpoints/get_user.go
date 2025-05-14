@@ -35,7 +35,10 @@ func MakeGetUserEndpoint(s service.Service) endpoint.Endpoint {
 			Email:    req.Email,
 		})
 		if err != nil {
-			return GetUserResponse{Err: err}, nil
+			return GetUserResponse{Err: err}, err
+		}
+		if !user.Found {
+			return GetUserResponse{Found: false}, nil
 		}
 		return GetUserResponse{
 			Found:              user.Found,
