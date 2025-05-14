@@ -12,8 +12,8 @@ type InitDatabaseRequest struct {
 }
 
 type InitDatabaseResponse struct {
-	Success bool
-	Message string
+	Success bool   `json:"success"`
+	Message string `json:"message"`
 }
 
 func MakeInitDatabaseEndpoint(s service.Service) endpoint.Endpoint {
@@ -26,7 +26,7 @@ func MakeInitDatabaseEndpoint(s service.Service) endpoint.Endpoint {
 			return InitDatabaseResponse{
 				Success: false,
 				Message: err.Error(),
-			}, err
+			}, WrapServiceError(err)
 		}
 		return InitDatabaseResponse{
 			Success: res.Success,

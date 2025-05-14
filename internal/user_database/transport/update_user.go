@@ -33,6 +33,7 @@ func encodeUpdateUserResponse(_ context.Context, resp interface{}) (interface{},
 	}
 	return &pb.UpdateUserResponse{
 		Success: r.Success,
+		Message: r.Message,
 	}, nil
 }
 

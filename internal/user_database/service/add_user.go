@@ -30,33 +30,43 @@ func (s *userService) AddUser(ctx context.Context, request AddUserRequest) (AddU
 
 	if request.UserID == "" {
 		level.Error(logger).Log("msg", "user_id is required")
-		return AddUserResponse{}, status.Error(codes.InvalidArgument, "user_id is required")
+		return AddUserResponse{}, NewInvalidArgumentError("user_id is required", nil)
+	}
+	if request.Username == "" {
+		level.Error(logger).Log("msg", "username is required")
+		return AddUserResponse{}, NewInvalidArgumentError("username is required", nil)
+	}
+	if request.HashedPassword == "" {
+		level.Error(logger).Log("msg", "hashed_password is required")
+		return AddUserResponse{}, NewInvalidArgumentError("hashed_password is required", nil)
 	}
 
 	userID, err := uuid.Parse(request.UserID)
 	if err != nil {
 		level.Warn(logger).Log("msg", "invalid user_id format", "user_id", request.UserID, "err", err)
-		return AddUserResponse{}, status.Errorf(codes.InvalidArgument, "invalid user_id format")
+		return AddUserResponse{}, NewInvalidArgumentError("invalid user_id format", err)
 	}
 
 	existingUserByID, err := s.repo.UserRepo.GetUserByID(request.UserID)
-	if err != nil && status.Code(err) != codes.NotFound {
-		level.Error(logger).Log("msg", "failed to check user existence by ID", "user_id", request.UserID, "err", err)
-		return AddUserResponse{}, status.Errorf(codes.Internal, "check user existence by ID failed: %v", err)
-	}
-	if existingUserByID != nil {
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			level.Error(logger).Log("msg", "failed to check user existence by ID", "user_id", request.UserID, "err", err)
+			return AddUserResponse{}, NewInternalError("failed to check user existence by ID", err)
+		}
+	} else if existingUserByID != nil {
 		level.Warn(logger).Log("msg", "user with this ID already exists", "user_id", request.UserID)
-		return AddUserResponse{}, status.Error(codes.AlreadyExists, "user already exists")
+		return AddUserResponse{}, NewAlreadyExistsError("user with this ID already exists", nil)
 	}
 
 	existingUser, err := s.repo.UserRepo.GetUserByUsernameOrEmail(request.Username, request.Email)
-	if err != nil && status.Code(err) != codes.NotFound {
-		level.Error(logger).Log("msg", "failed to check user existence", "username", request.Username, "err", err)
-		return AddUserResponse{}, status.Errorf(codes.Internal, "check user existence failed: %v", err)
-	}
-	if existingUser != nil {
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			level.Error(logger).Log("msg", "failed to check user existence", "username", request.Username, "err", err)
+			return AddUserResponse{}, NewInternalError("failed to check user existence", err)
+		}
+	} else if existingUser != nil {
 		level.Warn(logger).Log("msg", "user already exists", "username", request.Username)
-		return AddUserResponse{}, status.Error(codes.AlreadyExists, "user already exists")
+		return AddUserResponse{}, NewAlreadyExistsError("user with this username/email already exists", nil)
 	}
 
 	user := models.User{
@@ -73,10 +83,7 @@ func (s *userService) AddUser(ctx context.Context, request AddUserRequest) (AddU
 
 	if err := s.repo.UserRepo.AddUser(&user); err != nil {
 		level.Error(logger).Log("msg", "failed to create user", "username", request.Username, "user_id", request.UserID, "err", err)
-		if status.Code(err) != codes.Unknown {
-			return AddUserResponse{}, err
-		}
-		return AddUserResponse{}, status.Errorf(codes.Internal, "failed to create user: %v", err)
+		return AddUserResponse{}, NewInternalError("failed to create user", err)
 	}
 
 	level.Info(logger).Log("msg", "user created successfully", "username", request.Username, "user_id", request.UserID)

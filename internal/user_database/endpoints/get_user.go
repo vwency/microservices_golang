@@ -1,3 +1,5 @@
+// endpoints/get_user.go
+
 package endpoints
 
 import (
@@ -14,17 +16,15 @@ type GetUserRequest struct {
 }
 
 type GetUserResponse struct {
-	Found              bool
-	UserID             string
-	Username           string
-	Email              string
-	HashedPassword     string
-	HashedRefreshToken string
-	HashedAccessToken  string
-	Err                error
+	Found              bool   `json:"found"`
+	UserID             string `json:"user_id"`
+	Username           string `json:"username"`
+	Email              string `json:"email"`
+	HashedPassword     string `json:"hashed_password"`
+	HashedRefreshToken string `json:"hashed_refresh_token"`
+	HashedAccessToken  string `json:"hashed_access_token"`
+	Error              error  `json:"error,omitempty"`
 }
-
-func (r GetUserResponse) error() error { return r.Err }
 
 func MakeGetUserEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
@@ -35,11 +35,9 @@ func MakeGetUserEndpoint(s service.Service) endpoint.Endpoint {
 			Email:    req.Email,
 		})
 		if err != nil {
-			return GetUserResponse{Err: err}, err
+			return nil, WrapServiceError(err)
 		}
-		if !user.Found {
-			return GetUserResponse{Found: false}, nil
-		}
+
 		return GetUserResponse{
 			Found:              user.Found,
 			UserID:             user.UserID,

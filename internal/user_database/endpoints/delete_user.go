@@ -23,10 +23,7 @@ func MakeDeleteUserEndpoint(s service.Service) endpoint.Endpoint {
 			UserID: req.UserID,
 		})
 		if err != nil {
-			return DeleteUserResponse{
-				Success: false,
-				Message: err.Error(),
-			}, err
+			return nil, WrapServiceError(err)
 		}
 		return DeleteUserResponse{
 			Success: res.Success,

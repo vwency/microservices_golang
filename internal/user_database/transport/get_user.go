@@ -28,9 +28,11 @@ func decodeGetUserRequest(_ context.Context, req interface{}) (interface{}, erro
 
 func encodeGetUserResponse(_ context.Context, resp interface{}) (interface{}, error) {
 	r := resp.(endpoints.GetUserResponse)
-	if r.Err != nil {
-		return nil, r.Err
+
+	if r.Error != nil {
+		return nil, r.Error
 	}
+
 	return &pb.GetUserResponse{
 		Found:              r.Found,
 		UserId:             r.UserID,

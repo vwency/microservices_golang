@@ -4,7 +4,6 @@ import (
 	"errors"
 )
 
-// Base service errors
 var (
 	// 4xx errors
 	ErrInvalidArgument    = errors.New("invalid argument")
@@ -29,11 +28,10 @@ var (
 	ErrOutOfRange     = errors.New("out of range")
 )
 
-// ServiceError represents detailed service error
 type ServiceError struct {
-	Code    string // Machine-readable error code
-	Message string // Human-readable message
-	Err     error  // Underlying error
+	Code    string
+	Message string
+	Err     error
 }
 
 func (e *ServiceError) Error() string {
@@ -47,7 +45,6 @@ func (e *ServiceError) Unwrap() error {
 	return e.Err
 }
 
-// Helper functions to create specific service errors
 func NewInvalidArgumentError(msg string, err error) *ServiceError {
 	return &ServiceError{
 		Code:    "invalid_argument",
@@ -96,7 +93,6 @@ func NewInternalError(msg string, err error) *ServiceError {
 	}
 }
 
-// Additional helper functions for other error types
 func NewResourceExhaustedError(msg string, err error) *ServiceError {
 	return &ServiceError{
 		Code:    "resource_exhausted",

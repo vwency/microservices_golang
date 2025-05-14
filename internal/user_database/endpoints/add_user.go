@@ -33,7 +33,7 @@ func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
 			UserID:             req.UserID,
 		})
 		if err != nil {
-			return AddUserResponse{Success: false, Message: err.Error()}, nil
+			return nil, WrapServiceError(err)
 		}
 		return AddUserResponse{Success: res.Success, Message: res.Message}, nil
 	}

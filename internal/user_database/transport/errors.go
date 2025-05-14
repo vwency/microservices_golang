@@ -23,17 +23,17 @@ func ErrorEncoder(logger log.Logger) endpoint.Middleware {
 
 			logger.Log("error", err)
 
-			// If the error already implements GRPCStatusCoder, use it
+			// Если ошибка уже имеет gRPC-статус, возвращаем как есть
+			if st, ok := status.FromError(err); ok {
+				return nil, st.Err()
+			}
+
+			// Если ошибка реализует GRPCStatusCoder, используем её
 			if sc, ok := err.(GRPCStatusCoder); ok {
 				return nil, sc.GRPCStatus().Err()
 			}
 
-			// If it's a gRPC status error, return it directly
-			if _, ok := status.FromError(err); ok {
-				return nil, err
-			}
-
-			// Default to Internal error for unknown errors
+			// Все остальные ошибки — Internal
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
