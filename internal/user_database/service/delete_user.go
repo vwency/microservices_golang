@@ -2,17 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-kit/kit/log/level"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-var (
-	ErrInvalidArgument = errors.New("invalid argument")
-	ErrNotFound        = errors.New("not found")
-	ErrInternal        = errors.New("internal error")
 )
 
 type DeleteUserRequest struct {
