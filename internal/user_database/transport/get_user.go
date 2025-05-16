@@ -3,19 +3,9 @@ package transport
 import (
 	"context"
 
-	gokitgrpc "github.com/go-kit/kit/transport/grpc"
 	"github.com/vwency/microservices_golang/internal/user_database/endpoints"
 	pb "github.com/vwency/microservices_golang/proto/user_database"
 )
-
-func makeGetUserHandler(ep endpoints.Endpoints, opts ...gokitgrpc.ServerOption) *gokitgrpc.Server {
-	return gokitgrpc.NewServer(
-		ep.GetUser,
-		decodeGetUserRequest,
-		encodeGetUserResponse,
-		opts...,
-	)
-}
 
 func decodeGetUserRequest(_ context.Context, req interface{}) (interface{}, error) {
 	r := req.(*pb.GetUserRequest)

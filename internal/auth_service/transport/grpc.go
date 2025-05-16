@@ -18,10 +18,10 @@ type grpcServer struct {
 
 func RegisterGRPCServer(server *grpc.Server, eps endpoints.Endpoints) {
 	authv1.RegisterAuthServiceServer(server, &grpcServer{
-		login:    kitgrpc.NewServer(eps.Login, decodeLoginRequest, encodeLoginResponse),
-		logout:   kitgrpc.NewServer(eps.Logout, decodeLogoutRequest, encodeLogoutResponse),
-		register: kitgrpc.NewServer(eps.Register, decodeRegisterRequest, encodeRegisterResponse),
-		refresh:  kitgrpc.NewServer(eps.Refresh, decodeRefreshRequest, encodeRefreshResponse),
-		validate: kitgrpc.NewServer(eps.ValidateAccessToken, decodeValidateRequest, encodeValidateResponse),
+		login:    makeLoginHandler(eps),
+		logout:   makeLogoutHandler(eps),
+		register: makeRegisterHandler(eps),
+		refresh:  makeRefreshHandler(eps),
+		validate: makeValidateHandler(eps),
 	})
 }
