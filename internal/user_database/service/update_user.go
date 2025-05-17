@@ -22,68 +22,37 @@ type UpdateUserResponse struct {
 
 func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (UpdateUserResponse, error) {
 	logger := log.With(s.logger, "method", "UpdateUser")
-	const successMessage = "tokens updated successfully"
 
-	// Validate required fields
 	if req.UserID == "" {
-		msg := "userID is required"
-		level.Error(logger).Log("msg", msg)
-		return UpdateUserResponse{
-			Success: false,
-			Message: msg,
-		}, status.Errorf(codes.InvalidArgument, msg)
+		level.Error(logger).Log("msg", "user_id is required")
+		return UpdateUserResponse{}, NewInvalidArgumentError("user_id is required", nil)
 	}
 
 	if req.HashedRefreshToken == "" || req.HashedAccessToken == "" {
-		msg := "both refresh and access tokens are required"
-		level.Error(logger).Log("msg", msg)
-		return UpdateUserResponse{
-			Success: false,
-			Message: msg,
-		}, status.Errorf(codes.InvalidArgument, msg)
+		level.Error(logger).Log("msg", "both refresh and access tokens are required")
+		return UpdateUserResponse{}, NewInvalidArgumentError("both refresh and access tokens are required", nil)
 	}
 
-	// Check if user exists
 	_, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			msg := "user not found"
-			level.Warn(logger).Log("msg", msg, "userID", req.UserID)
-			return UpdateUserResponse{
-				Success: false,
-				Message: msg,
-			}, status.Errorf(codes.NotFound, msg)
+			level.Warn(logger).Log("msg", "user not found", "user_id", req.UserID)
+			return UpdateUserResponse{}, NewNotFoundError("user not found", nil)
 		}
-
-		msg := "failed to verify user existence"
-		level.Error(logger).Log("msg", msg, "userID", req.UserID, "err", err)
-		return UpdateUserResponse{
-			Success: false,
-			Message: msg,
-		}, status.Errorf(codes.Internal, msg)
+		level.Error(logger).Log("msg", "failed to verify user existence", "user_id", req.UserID, "err", err)
+		return UpdateUserResponse{}, NewInternalError("failed to verify user existence", err)
 	}
 
-	// Update tokens
-	if err := s.repo.UserRepo.UpdateUserTokens(
-		req.UserID,
-		req.HashedRefreshToken,
-		req.HashedAccessToken,
-	); err != nil {
-		msg := "failed to update tokens"
-		level.Error(logger).Log("msg", msg, "userID", req.UserID, "err", err)
-		return UpdateUserResponse{
-			Success: false,
-			Message: msg,
-		}, status.Errorf(codes.Internal, msg)
+	err = s.repo.UserRepo.UpdateUserTokens(req.UserID, req.HashedRefreshToken, req.HashedAccessToken)
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to update tokens", "user_id", req.UserID, "err", err)
+		return UpdateUserResponse{}, NewInternalError("failed to update tokens", err)
 	}
 
-	level.Info(logger).Log(
-		"msg", successMessage,
-		"userID", req.UserID,
-	)
+	level.Info(logger).Log("msg", "tokens updated successfully", "user_id", req.UserID)
 
 	return UpdateUserResponse{
 		Success: true,
-		Message: successMessage,
+		Message: "tokens updated successfully",
 	}, nil
 }
