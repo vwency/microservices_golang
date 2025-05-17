@@ -29,6 +29,12 @@ tasks:
     cmds:
     - go run ./cmd/jwt_service
 
+  run-lint:
+    desc: Run jwt_service
+    cmds:
+    - golangci-lint run ./...
+
+
   proto-generate:
     desc: Generate gRPC code from proto
     cmds:
