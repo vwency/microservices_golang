@@ -283,4 +283,3 @@ linters:
     paths-except:
       - ".*\\.my\\.go$"
       - lib/bad.go
-  

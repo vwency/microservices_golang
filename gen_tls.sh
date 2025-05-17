@@ -26,14 +26,14 @@ C = RU
 ST = State
 L = City
 O = Organization
-CN = database_init_service
+CN = localhost
 
 [req_ext]
 subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = localhost
-DNS.2 = database_init_service
+DNS.2 = localhost
 IP.1 = 127.0.0.1
 EOF
 )
@@ -47,22 +47,53 @@ subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = localhost
-DNS.2 = database_init_service
+DNS.2 = localhost
 IP.1 = 127.0.0.1
 EOF
 )
 
-# 2. Генерация клиентского ключа и CSR для Auth сервиса (когда он является клиентом для Database)
+# 2. Генерация клиентского ключа и CSR для Auth сервиса (клиент)
 echo "Генерация клиентского ключа и запроса на подпись сертификата для Auth сервиса как клиента..."
 openssl genrsa -out $CERT_DIR/auth_client.key 4096
-openssl req -new -key $CERT_DIR/auth_client.key -out $CERT_DIR/auth_client.csr -subj "/C=RU/ST=State/L=City/O=ClientOrg/CN=auth-service-client"
+openssl req -new -key $CERT_DIR/auth_client.key -out $CERT_DIR/auth_client.csr -config <(
+cat <<-EOF
+[req]
+default_bits = 4096
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[dn]
+C = RU
+ST = State
+L = City
+O = ClientOrg
+CN = auth-service-client
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+EOF
+)
 
 # Подписание клиентского сертификата для Auth сервиса
 echo "Подписание клиентского сертификата для Auth сервиса как клиента..."
 openssl x509 -req -in $CERT_DIR/auth_client.csr -CA $CERT_DIR/ca.crt -CAkey $CERT_DIR/ca.key -CAcreateserial \
-    -out $CERT_DIR/auth_client.crt -days 365 -sha256
+    -out $CERT_DIR/auth_client.crt -days 365 -sha256 -extfile <(
+cat <<-EOF
+subjectAltName = @alt_names
 
-# 3. Генерация серверного ключа и CSR для Auth сервиса (когда он является сервером)
+[alt_names]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+EOF
+)
+
+# 3. Генерация серверного ключа и CSR для Auth сервиса (сервер)
 echo "Генерация серверного ключа и запроса на подпись сертификата для Auth сервиса как сервера..."
 openssl genrsa -out $CERT_DIR/auth_server.key 4096
 openssl req -new -key $CERT_DIR/auth_server.key -out $CERT_DIR/auth_server.csr -config <(
@@ -79,7 +110,7 @@ C = RU
 ST = State
 L = City
 O = Organization
-CN = auth-service
+CN = localhost
 
 [req_ext]
 subjectAltName = @alt_names
@@ -113,5 +144,3 @@ ln -sf auth_client.key $CERT_DIR/client.key
 ln -sf auth_client.crt $CERT_DIR/client.crt
 
 echo "Сертификаты успешно созданы в директории $CERT_DIR"
-
-# Отображение созданных файлов

@@ -1,12 +1,16 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
+	"os"
 
 	kitlog "github.com/go-kit/kit/log"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/vwency/microservices_golang/internal/user_database/endpoints"
 	"github.com/vwency/microservices_golang/internal/user_database/repository"
@@ -54,8 +58,14 @@ func main() {
 	// Create endpoints
 	eps := endpoints.MakeEndpoints(userService)
 
-	// Create gRPC server with both endpoints and JWT manager
-	grpcServer := grpc.NewServer()
+	// Load TLS credentials
+	tlsCredentials, err := loadTLSCredentials()
+	if err != nil {
+		logger.Fatal("Failed to load TLS credentials", zap.Error(err))
+	}
+
+	// Create gRPC server with TLS
+	grpcServer := grpc.NewServer(grpc.Creds(tlsCredentials))
 	transport.RegisterGRPCServer(grpcServer, eps)
 
 	lis, err := net.Listen("tcp", "0.0.0.0:"+Cfg.App.Port)
@@ -66,9 +76,43 @@ func main() {
 	logger.Info("Starting server",
 		zap.String("service", Cfg.App.ServiceName),
 		zap.String("port", Cfg.App.Port),
+		zap.Bool("TLS", true),
 	)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Fatal("gRPC server failed", zap.Error(err))
 	}
+}
+
+// Функция для загрузки TLS сертификатов и создания конфигурации
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	// Загрузка корневого CA сертификата
+	pemServerCA, err := os.ReadFile("tls/ca.crt")
+	if err != nil {
+		return nil, fmt.Errorf("не удалось прочитать корневой CA сертификат: %w", err)
+	}
+
+	// Создание пула сертификатов, добавление CA сертификата
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(pemServerCA) {
+		return nil, fmt.Errorf("не удалось добавить CA сертификат в пул")
+	}
+
+	// Загрузка серверного сертификата и ключа
+	serverCert, err := tls.LoadX509KeyPair("tls/db_server.crt", "tls/db_server.key")
+	if err != nil {
+		return nil, fmt.Errorf("не удалось загрузить серверный сертификат и ключ: %w", err)
+	}
+
+	// Настройка TLS конфигурации
+	config := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
+		RootCAs:      certPool,
+		MinVersion:   tls.VersionTLS12,
+		ServerName:   "localhost", // Должно соответствовать CN в сертификате
+	}
+
+	return credentials.NewTLS(config), nil
 }
