@@ -41,7 +41,6 @@ var (
 	ErrDataLoss           = &GRPCError{Code: codes.DataLoss, Message: "data loss"}
 )
 
-// ErrorWithDetails creates a gRPC error with additional details
 func ErrorWithDetails(code codes.Code, msg string, details ...interface{}) error {
 	detailedMsg := msg
 	if len(details) > 0 {
@@ -53,13 +52,11 @@ func ErrorWithDetails(code codes.Code, msg string, details ...interface{}) error
 	}
 }
 
-// WrapServiceError converts service-level errors to appropriate gRPC errors
 func WrapServiceError(err error) error {
 	if err == nil {
 		return nil
 	}
 
-	// First check for service-specific error type
 	var svcErr *service.ServiceError
 	if errors.As(err, &svcErr) {
 		switch svcErr.Code {
@@ -90,7 +87,6 @@ func WrapServiceError(err error) error {
 		}
 	}
 
-	// Then check for standard service errors
 	if errors.Is(err, service.ErrInvalidArgument) {
 		return ErrInvalidArgument
 	}
@@ -125,6 +121,5 @@ func WrapServiceError(err error) error {
 		return ErrDataLoss
 	}
 
-	// Handle any other errors with a generic internal error
 	return ErrorWithDetails(codes.Internal, "internal server error", err)
 }

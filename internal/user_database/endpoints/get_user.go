@@ -1,5 +1,3 @@
-// endpoints/get_user.go
-
 package endpoints
 
 import (
