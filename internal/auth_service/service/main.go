@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -16,12 +15,6 @@ type TokenPair struct {
 	RefreshToken string
 	ExpiresAt    time.Time
 }
-
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrTokenGeneration    = errors.New("failed to generate tokens")
-)
 
 type contextKey string
 

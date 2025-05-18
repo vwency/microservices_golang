@@ -10,10 +10,6 @@ import (
 	"github.com/vwency/microservices_golang/utils/authutils"
 )
 
-var (
-	ErrInvalidToken = errors.New("invalid token")
-)
-
 func (s *service) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
 	refreshToken := req.GetRefreshToken()
 	ip := getIPFromContext(ctx)
