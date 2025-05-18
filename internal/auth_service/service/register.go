@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
@@ -13,70 +15,93 @@ import (
 )
 
 func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	ip := getIPFromContext(ctx)
-	_ = level.Info(s.logger).Log(
+	// Логирование в одну операцию
+	level.Info(s.logger).Log(
 		"msg", "Attempting registration",
 		"username", req.Username,
-		"ip", ip,
+		"ip", getIPFromContext(ctx),
 	)
 
+	// Валидация в начале
 	if req.Username == "" || req.Password == "" || req.Email == "" {
 		return nil, status.Error(codes.InvalidArgument, "username, password and email are required")
 	}
 
-	userID := uuid.New().String()
+	// Параллельное выполнение операций, которые могут выполняться одновременно
+	var (
+		userID          = uuid.New().String()
+		hashedPassword  string
+		accessToken     string
+		accessExpiresAt time.Time
+		refreshToken    string
+		err             error
+	)
 
-	hashedPassword, err := authutils.GenHash(req.Username, req.Password, nil)
+	// Группа для параллельного выполнения
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	// Хеширование пароля
+	go func() {
+		defer wg.Done()
+		hashedPassword, err = authutils.GenHash(req.Username, req.Password, nil)
+	}()
+
+	// Генерация access token
+	go func() {
+		defer wg.Done()
+		payload := map[string]interface{}{
+			"UserID": userID,
+			"Roles":  []interface{}{"user"},
+		}
+		accessToken, accessExpiresAt, err = s.jwtManager.GenerateAccessToken(payload)
+	}()
+
+	// Генерация refresh token
+	go func() {
+		defer wg.Done()
+		payload := map[string]interface{}{
+			"UserID": userID,
+			"Roles":  []interface{}{"user"},
+		}
+		refreshToken, _, err = s.jwtManager.GenerateRefreshToken(payload)
+	}()
+
+	wg.Wait()
+
+	// Проверка ошибок после параллельного выполнения
 	if err != nil {
-		_ = level.Error(s.logger).Log("msg", "Failed to hash password", "err", err)
-		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", err)
+		level.Error(s.logger).Log("msg", "Error during parallel operations", "err", err)
+		return nil, status.Errorf(codes.Internal, "operation failed: %v", err)
 	}
 
-	payload := map[string]interface{}{
-		"UserID": userID,
-		"Roles":  []interface{}{"user"},
-	}
-
-	accessToken, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(payload)
-	if err != nil {
-		_ = level.Error(s.logger).Log("msg", "Failed to generate access token", "err", err)
-		return nil, status.Errorf(codes.Internal, "failed to generate access token: %v", err)
-	}
-
-	refreshToken, _, err := s.jwtManager.GenerateRefreshToken(payload)
-	if err != nil {
-		_ = level.Error(s.logger).Log("msg", "Failed to generate refresh token", "err", err)
-		return nil, status.Errorf(codes.Internal, "failed to generate refresh token: %v", err)
-	}
-
+	// Хеширование токенов (последовательно, так как зависит от предыдущих результатов)
 	hashedAccessToken, err := authutils.GenHash(s.tokenPepper, accessToken, nil)
 	if err != nil {
-		_ = level.Error(s.logger).Log("msg", "Failed to hash access token", "err", err)
+		level.Error(s.logger).Log("msg", "Failed to hash access token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to hash access token: %v", err)
 	}
 
 	hashedRefreshToken, err := authutils.GenHash(s.tokenPepper, refreshToken, nil)
 	if err != nil {
-		_ = level.Error(s.logger).Log("msg", "Failed to hash refresh token", "err", err)
+		level.Error(s.logger).Log("msg", "Failed to hash refresh token", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to hash refresh token: %v", err)
 	}
 
-	addUserReq := &databasev1.AddUserRequest{
+	// Добавление пользователя
+	if _, err := s.dbClient.AddUser(ctx, &databasev1.AddUserRequest{
 		Username:           req.Username,
 		HashedPassword:     hashedPassword,
 		Email:              req.Email,
 		HashedAccessToken:  hashedAccessToken,
 		HashedRefreshToken: hashedRefreshToken,
 		UserId:             &userID,
-	}
-
-	addUserResp, err := s.dbClient.AddUser(ctx, addUserReq)
-	if err != nil || !addUserResp.GetSuccess() {
-		_ = level.Error(s.logger).Log("msg", "Failed to add user", "err", err)
+	}); err != nil {
+		level.Error(s.logger).Log("msg", "Failed to add user", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to add user: %v", err)
 	}
 
-	_ = level.Info(s.logger).Log(
+	level.Info(s.logger).Log(
 		"msg", "User registered successfully",
 		"user_id", userID,
 		"username", req.Username,

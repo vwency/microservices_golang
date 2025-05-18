@@ -27,7 +27,7 @@ func NewTLSCredentials(logger *zap.Logger) (credentials.TransportCredentials, er
 	}
 	config := &tls.Config{
 		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientAuth:   tls.NoClientCert, // tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 		RootCAs:      certPool,
 		MinVersion:   tls.VersionTLS13,

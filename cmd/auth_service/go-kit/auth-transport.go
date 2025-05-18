@@ -23,16 +23,23 @@ func NewGRPCServer(
 		opts = append(opts, grpc.Creds(tlsCredentials))
 	}
 
-	// Keepalive параметры для улучшения производительности
 	kaParams := keepalive.ServerParameters{
-		MaxConnectionIdle:     15 * time.Minute, // закрывать неактивные соединения через 15 минут
-		MaxConnectionAge:      24 * time.Hour,   // максимальный возраст соединения
-		MaxConnectionAgeGrace: 5 * time.Minute,  // grace period перед закрытием
-		Time:                  10 * time.Minute, // время отправки ping клиенту
-		Timeout:               20 * time.Second, // время ожидания pong от клиента
+		MaxConnectionIdle:     15 * time.Second,
+		MaxConnectionAge:      2 * time.Minute,
+		MaxConnectionAgeGrace: 15 * time.Second,
+		Time:                  10 * time.Second,
+		Timeout:               3 * time.Second,
+	}
+	kaEnforcement := keepalive.EnforcementPolicy{
+		MinTime:             5 * time.Second,
+		PermitWithoutStream: true,
 	}
 
-	opts = append(opts, grpc.KeepaliveParams(kaParams))
+	opts = append(opts,
+		grpc.KeepaliveParams(kaParams),
+		grpc.KeepaliveEnforcementPolicy(kaEnforcement),
+		grpc.MaxConcurrentStreams(1000),
+	)
 
 	server := grpc.NewServer(opts...)
 	transport.RegisterGRPCServer(server, endpoints)
