@@ -19,8 +19,12 @@ func main() {
 			gokit.NewGRPCServer,
 			newListener,
 			NewTLSCredentials,
+			initTrace,
 		),
-		fx.Invoke(startServer),
+		fx.Invoke(
+			startServer,
+			registerTracerShutdown,
+		),
 	)
 
 	app.Run()

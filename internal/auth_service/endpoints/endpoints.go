@@ -3,6 +3,7 @@ package endpoints
 import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/vwency/microservices_golang/internal/auth_service/service"
+	"go.opentelemetry.io/otel"
 )
 
 type Endpoints struct {
@@ -14,11 +15,13 @@ type Endpoints struct {
 }
 
 func MakeEndpoints(s service.AuthService) Endpoints {
+	tracer := otel.Tracer("auth_service")
+
 	return Endpoints{
-		Login:               MakeLoginEndpoint(s),
-		Logout:              MakeLogoutEndpoint(s),
-		Register:            MakeRegisterEndpoint(s),
-		Refresh:             MakeRefreshEndpoint(s),
-		ValidateAccessToken: MakeValidateEndpoint(s),
+		Login:               TraceEndpoint(tracer, "Login")(MakeLoginEndpoint(s)),
+		Logout:              TraceEndpoint(tracer, "Logout")(MakeLogoutEndpoint(s)),
+		Register:            TraceEndpoint(tracer, "Register")(MakeRegisterEndpoint(s)),
+		Refresh:             TraceEndpoint(tracer, "Refresh")(MakeRefreshEndpoint(s)),
+		ValidateAccessToken: TraceEndpoint(tracer, "ValidateAccessToken")(MakeValidateEndpoint(s)),
 	}
 }
