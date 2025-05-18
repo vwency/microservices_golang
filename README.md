@@ -7,3 +7,5 @@
 - Add tls certs
 - Event driven
 - OTLP
+- Add keep-alive
+- Fix latency
