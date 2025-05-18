@@ -5,3 +5,5 @@
 - Add fx DP injecton
 - Add Logrus
 - Add tls certs
+- Event driven
+- OTLP
