@@ -1,4 +1,4 @@
-package main
+package gokit
 
 import (
 	"github.com/go-kit/log"
@@ -8,7 +8,7 @@ import (
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
 )
 
-func newAuthService(
+func NewAuthService(
 	dbClient databasev1.DatabaseInitServiceClient,
 	jwtManager *jwt.JWTManager,
 	logger log.Logger,
