@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
 	authv1 "github.com/vwency/microservices_golang/proto/auth_service"
 	databasev1 "github.com/vwency/microservices_golang/proto/user_database"
@@ -14,12 +13,33 @@ import (
 	otelAttr "go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	grpcCodes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+func validateRegisterInput(ctx context.Context, tracer trace.Tracer, req *authv1.RegisterRequest) error {
+	start := time.Now()
+	_, span := tracer.Start(ctx, "InputValidation")
+	defer span.End()
+
+	if req.Username == "" || req.Password == "" || req.Email == "" {
+		err := NewAuthError(codes.InvalidArgument, "username, password and email are required")
+		span.SetAttributes(
+			otelAttr.Int64("validation_duration_ns", time.Since(start).Nanoseconds()),
+			otelAttr.Bool("validation_passed", false),
+		)
+		span.RecordError(err)
+		return err
+	}
+
+	span.SetAttributes(
+		otelAttr.Int64("validation_duration_ns", time.Since(start).Nanoseconds()),
+		otelAttr.Bool("validation_passed", true),
+	)
+	return nil
+}
+
 func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	// Старт корневой трассировки
 	tracer := otel.Tracer("auth_service")
 	ctx, span := tracer.Start(ctx, "RegisterService",
 		trace.WithAttributes(
@@ -29,41 +49,12 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		))
 	defer span.End()
 
-	// Логирование начала операции
-	level.Info(s.logger).Log(
-		"msg", "Attempting registration",
-		"username", req.Username,
-		"ip", getIPFromContext(ctx),
-	)
+	s.logger.Log("level", "info", "msg", "Attempting registration", "username", req.Username, "ip", getIPFromContext(ctx))
 
-	// Валидация входных данных
-	{
-		start := time.Now()
-		_, validateSpan := tracer.Start(ctx, "InputValidation")
-
-		var validationPassed bool
-		var err error
-
-		if req.Username == "" || req.Password == "" || req.Email == "" {
-			validationPassed = false
-			err = NewAuthError(grpcCodes.InvalidArgument, "username, password and email are required")
-			validateSpan.SetAttributes(
-				otelAttr.Int64("validation_duration_ns", time.Since(start).Nanoseconds()),
-				otelAttr.Bool("validation_passed", validationPassed),
-			)
-			validateSpan.RecordError(err)
-			validateSpan.End()
-			span.RecordError(err)
-			span.SetStatus(otelCodes.Error, err.Error())
-			return nil, err
-		}
-
-		validationPassed = true
-		validateSpan.SetAttributes(
-			otelAttr.Int64("validation_duration_ns", time.Since(start).Nanoseconds()),
-			otelAttr.Bool("validation_passed", validationPassed),
-		)
-		validateSpan.End()
+	if err := validateRegisterInput(ctx, tracer, req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(otelCodes.Error, err.Error())
+		return nil, err
 	}
 
 	var (
@@ -77,11 +68,9 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		wg              sync.WaitGroup
 	)
 
-	// Трассировка всего параллельного блока
 	ctx, parallelSpan := tracer.Start(ctx, "ParallelOperations")
 	wg.Add(3)
 
-	// Параллельные операции с улучшенной трассировкой
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "HashPassword",
@@ -93,9 +82,8 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		start := time.Now()
 		hashedPassword, err = authutils.GenHash(req.Username, req.Password, nil)
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
-
 		if err != nil {
-			errChan <- NewAuthError(grpcCodes.Internal, "failed to hash password", err)
+			errChan <- NewAuthError(codes.Internal, "failed to hash password", err)
 			span.RecordError(err)
 		}
 	}()
@@ -115,9 +103,8 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 			otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()),
 			otelAttr.String("token.expires_at", accessExpiresAt.String()),
 		)
-
 		if err != nil {
-			errChan <- NewAuthError(grpcCodes.Internal, "failed to generate access token", err)
+			errChan <- NewAuthError(codes.Internal, "failed to generate access token", err)
 			span.RecordError(err)
 		}
 	}()
@@ -134,18 +121,16 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		}
 		refreshToken, _, err = s.jwtManager.GenerateRefreshToken(payload)
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
-
 		if err != nil {
-			errChan <- NewAuthError(grpcCodes.Internal, "failed to generate refresh token", err)
+			errChan <- NewAuthError(codes.Internal, "failed to generate refresh token", err)
 			span.RecordError(err)
 		}
 	}()
 
 	wg.Wait()
-	parallelSpan.End() // Завершаем трассировку параллельного блока
+	parallelSpan.End()
 	close(errChan)
 
-	// Обработка ошибок из параллельных операций
 	for e := range errChan {
 		if e != nil {
 			span.RecordError(e)
@@ -154,7 +139,6 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		}
 	}
 
-	// Хеширование токенов с детальной трассировкой
 	var hashedAccessToken, hashedRefreshToken string
 	{
 		_, hashSpan := tracer.Start(ctx, "HashTokens",
@@ -167,9 +151,8 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		start := time.Now()
 		hashedAccessToken, err = authutils.GenHash(s.tokenPepper, accessToken, nil)
 		hashSpan.SetAttributes(otelAttr.Int64("access_token.hash_duration.ns", time.Since(start).Nanoseconds()))
-
 		if err != nil {
-			err = NewAuthError(grpcCodes.Internal, "failed to hash access token", err)
+			err = NewAuthError(codes.Internal, "failed to hash access token", err)
 			hashSpan.RecordError(err)
 			span.RecordError(err)
 			span.SetStatus(otelCodes.Error, err.Error())
@@ -179,9 +162,8 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		start = time.Now()
 		hashedRefreshToken, err = authutils.GenHash(s.tokenPepper, refreshToken, nil)
 		hashSpan.SetAttributes(otelAttr.Int64("refresh_token.hash_duration.ns", time.Since(start).Nanoseconds()))
-
 		if err != nil {
-			err = NewAuthError(grpcCodes.Internal, "failed to hash refresh token", err)
+			err = NewAuthError(codes.Internal, "failed to hash refresh token", err)
 			hashSpan.RecordError(err)
 			span.RecordError(err)
 			span.SetStatus(otelCodes.Error, err.Error())
@@ -189,7 +171,6 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		}
 	}
 
-	// Подготовка запроса к БД
 	dbReq := &databasev1.AddUserRequest{
 		Username:           req.Username,
 		HashedPassword:     hashedPassword,
@@ -199,11 +180,9 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 		UserId:             &userID,
 	}
 
-	// Вызов БД с трассировкой
 	ctx, dbSpan := tracer.Start(ctx, "DatabaseAddUser",
 		trace.WithAttributes(
 			otelAttr.String("db.operation", "AddUser"),
-			// Заменили Size() на примерный расчет размера
 			otelAttr.Int("request.size.bytes", len(req.Username)+len(hashedPassword)+len(req.Email)+
 				len(hashedAccessToken)+len(hashedRefreshToken)+len(userID)),
 		))
@@ -212,34 +191,26 @@ func (s *service) Register(ctx context.Context, req *authv1.RegisterRequest) (*a
 	start := time.Now()
 	_, err = s.dbClient.AddUser(ctx, dbReq)
 	dbSpan.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
-
 	if err != nil {
 		if st, ok := status.FromError(err); ok {
 			switch st.Code() {
-			case grpcCodes.AlreadyExists:
+			case codes.AlreadyExists:
 				err = ErrUserAlreadyExists
 			default:
 				err = NewAuthError(st.Code(), "database operation failed", st.Message())
 			}
 		} else {
-			err = NewAuthError(grpcCodes.Internal, "database operation failed", err)
+			err = NewAuthError(codes.Internal, "database operation failed", err)
 		}
-
 		dbSpan.RecordError(err)
 		span.RecordError(err)
 		span.SetStatus(otelCodes.Error, err.Error())
 		return nil, err
 	}
 
-	// Успешное завершение
-	level.Info(s.logger).Log(
-		"msg", "User registered successfully",
-		"user_id", userID,
-		"username", req.Username,
-		"email", req.Email,
-	)
-
+	s.logger.Log("level", "info", "msg", "User registered successfully", "user_id", userID, "username", req.Username, "email", req.Email)
 	span.SetStatus(otelCodes.Ok, "registration successful")
+
 	return &authv1.RegisterResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
