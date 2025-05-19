@@ -7,10 +7,9 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
+	error_hndl "github.com/vwency/microservices_golang/internal/auth_service/service/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/vwency/microservices_golang/internal/auth_service/service"
 )
 
 // GRPCError represents a gRPC error with status code and message
@@ -75,17 +74,17 @@ func ErrorWrapperMiddleware(logger log.Logger) endpoint.Middleware {
 
 			// Handle service errors
 			switch {
-			case service.IsUserAlreadyExists(err):
+			case error_hndl.IsUserAlreadyExists(err):
 				return nil, ErrorWithDetails(codes.AlreadyExists, err.Error())
-			case service.IsInvalidCredentials(err):
+			case error_hndl.IsInvalidCredentials(err):
 				return nil, ErrorWithDetails(codes.Unauthenticated, err.Error())
-			case service.IsUserNotFound(err):
+			case error_hndl.IsUserNotFound(err):
 				return nil, ErrorWithDetails(codes.NotFound, err.Error())
-			case service.IsInvalidToken(err) || service.IsTokenExpired(err):
+			case error_hndl.IsInvalidToken(err) || error_hndl.IsTokenExpired(err):
 				return nil, ErrorWithDetails(codes.Unauthenticated, err.Error())
-			case service.IsTokenGeneration(err):
+			case error_hndl.IsTokenGeneration(err):
 				return nil, ErrorWithDetails(codes.Internal, err.Error())
-			case service.IsValidationFailed(err):
+			case error_hndl.IsValidationFailed(err):
 				return nil, ErrorWithDetails(codes.InvalidArgument, err.Error())
 			default:
 				// Wrap generic errors
@@ -116,7 +115,7 @@ func WrapServiceError(err error) error {
 	}
 
 	// If error is an AuthError, convert to GRPCError
-	var authErr *service.AuthError
+	var authErr *error_hndl.AuthError
 	if errors.As(err, &authErr) {
 		return ErrorWithDetails(authErr.Code, authErr.Message)
 	}
