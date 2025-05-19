@@ -44,6 +44,7 @@ func (s *userService) AddUser(ctx context.Context, request AddUserRequest) (AddU
 	userID, err := uuid.Parse(request.UserID)
 	if err != nil {
 		level.Warn(logger).Log("msg", "invalid user_id format", "user_id", request.UserID, "err", err)
+		// Возвращаем ошибку с кодом InvalidArgument
 		return AddUserResponse{}, NewInvalidArgumentError("invalid user_id format", err)
 	}
 

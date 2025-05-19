@@ -1,4 +1,4 @@
-package transport
+package grpc
 
 import (
 	kitgrpc "github.com/go-kit/kit/transport/grpc"

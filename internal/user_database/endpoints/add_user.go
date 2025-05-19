@@ -32,8 +32,11 @@ func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
 			HashedAccessToken:  req.HashedAccessToken,
 			UserID:             req.UserID,
 		})
+
+		// Важно всегда оборачивать ошибки сервиса
 		if err != nil {
-			return nil, WrapServiceError(err)
+			wrappedErr := WrapServiceError(err)
+			return nil, wrappedErr // Убедитесь, что возвращается обёрнутая ошибка
 		}
 		return AddUserResponse{Success: res.Success, Message: res.Message}, nil
 	}
