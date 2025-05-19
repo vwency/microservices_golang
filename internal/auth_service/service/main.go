@@ -26,12 +26,25 @@ func getIPFromContext(ctx context.Context) string {
 	}
 	return "unknown"
 }
+func GetIPFromContext(ctx context.Context) string {
+	if ip, ok := ctx.Value(ipContextKey).(string); ok {
+		return ip
+	}
+	return "unknown"
+}
 
 type service struct {
 	dbClient    databasev1.DatabaseInitServiceClient
 	jwtManager  *jwt.JWTManager
 	logger      log.Logger
 	tokenPepper string
+}
+
+type Service struct {
+	DBClient    databasev1.DatabaseInitServiceClient
+	JWTManager  *jwt.JWTManager
+	Logger      log.Logger
+	TokenPepper string
 }
 
 type AuthService interface {
