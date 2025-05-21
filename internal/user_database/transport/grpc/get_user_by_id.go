@@ -29,7 +29,7 @@ func encodeGetUserByIDResponse(_ context.Context, resp interface{}) (interface{}
 func (s *grpcServer) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.GetUserByIDResponse, error) {
 	_, res, err := s.getUserByID.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, ConvertToGRPCError(err)
+		return nil, GRPCErrorWrapper(err)
 	}
 	return res.(*pb.GetUserByIDResponse), nil
 }

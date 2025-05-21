@@ -27,7 +27,7 @@ func encodeUpdateUserResponse(_ context.Context, resp interface{}) (interface{},
 func (s *grpcServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
 	_, res, err := s.updateUser.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, ConvertToGRPCError(err)
+		return nil, GRPCErrorWrapper(err)
 	}
 	return res.(*pb.UpdateUserResponse), nil
 }

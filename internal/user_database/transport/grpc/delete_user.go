@@ -25,7 +25,7 @@ func encodeDeleteUserResponse(_ context.Context, response interface{}) (interfac
 func (s *grpcServer) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
 	_, resp, err := s.deleteUser.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, ConvertToGRPCError(err)
+		return nil, GRPCErrorWrapper(err)
 	}
 	return resp.(*pb.DeleteUserResponse), nil
 }

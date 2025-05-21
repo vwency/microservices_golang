@@ -32,7 +32,7 @@ func encodeGetUserResponse(_ context.Context, resp interface{}) (interface{}, er
 func (s *grpcServer) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	_, res, err := s.getUser.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, ConvertToGRPCError(err)
+		return nil, GRPCErrorWrapper(err)
 	}
 	return res.(*pb.GetUserResponse), nil
 }
