@@ -18,9 +18,6 @@ func decodeUpdateUserRequest(_ context.Context, req interface{}) (interface{}, e
 
 func encodeUpdateUserResponse(_ context.Context, resp interface{}) (interface{}, error) {
 	r := resp.(endpoints.UpdateUserResponse)
-	if r.Err != nil {
-		return nil, r.Err
-	}
 	return &pb.UpdateUserResponse{
 		Success: r.Success,
 		Message: r.Message,
@@ -30,7 +27,7 @@ func encodeUpdateUserResponse(_ context.Context, resp interface{}) (interface{},
 func (s *grpcServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
 	_, res, err := s.updateUser.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, ConvertToGRPCError(err)
 	}
 	return res.(*pb.UpdateUserResponse), nil
 }

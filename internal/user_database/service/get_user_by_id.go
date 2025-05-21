@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type GetUserByIDRequest struct {
@@ -27,6 +26,7 @@ type GetUserByIDResponse struct {
 func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (GetUserByIDResponse, error) {
 	logger := log.With(s.logger, "method", "GetUserByID")
 
+	// Валидация входного запроса
 	if req.UserID == "" {
 		level.Error(logger).Log("msg", "userID is required")
 		return GetUserByIDResponse{}, NewInvalidArgumentError("userID must be provided", nil)
@@ -39,21 +39,29 @@ func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (
 
 	user, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
-		switch {
-		case status.Code(err) == codes.NotFound:
-			level.Debug(logger).Log("msg", "user not found", "userID", req.UserID)
-			return GetUserByIDResponse{Found: false}, nil
+		var serviceErr *ServiceError
+		if errors.As(err, &serviceErr) {
+			switch serviceErr.Code {
+			case "not_found":
+				level.Debug(logger).Log("msg", "user not found", "userID", req.UserID)
+				return GetUserByIDResponse{Found: false}, nil
 
-		case status.Code(err) == codes.InvalidArgument:
-			level.Warn(logger).Log("msg", "invalid userID", "userID", req.UserID, "err", err)
-			return GetUserByIDResponse{}, NewInvalidArgumentError("invalid userID", err)
+			case "invalid_argument":
+				level.Warn(logger).Log("msg", "invalid userID", "userID", req.UserID, "err", err)
+				return GetUserByIDResponse{}, NewInvalidArgumentError("invalid userID", err)
 
-		default:
-			level.Error(logger).Log("msg", "failed to get user", "userID", req.UserID, "err", err)
-			return GetUserByIDResponse{}, NewInternalError("failed to get user", err)
+			default:
+				level.Error(logger).Log("msg", "failed to get user", "userID", req.UserID, "err", err)
+				return GetUserByIDResponse{}, NewInternalError("failed to get user", err)
+			}
 		}
+
+		// Если ошибка не является ServiceError, логируем и возвращаем как internal
+		level.Error(logger).Log("msg", "unexpected error when getting user", "userID", req.UserID, "err", err)
+		return GetUserByIDResponse{}, NewInternalError("unexpected error when getting user", err)
 	}
 
+	// Защита от nil указателя в Email
 	email := ""
 	if user.Email != nil {
 		email = *user.Email

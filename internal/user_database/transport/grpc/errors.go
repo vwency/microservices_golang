@@ -15,12 +15,10 @@ func ConvertToGRPCError(err error) error {
 		return nil
 	}
 
-	// Уже gRPC статус?
 	if st, ok := status.FromError(err); ok {
 		return st.Err()
 	}
 
-	// Контекстные ошибки
 	switch {
 	case errors.Is(err, context.Canceled):
 		return status.Error(codes.Canceled, "request canceled")
@@ -28,12 +26,10 @@ func ConvertToGRPCError(err error) error {
 		return status.Error(codes.DeadlineExceeded, "request deadline exceeded")
 	}
 
-	// Разворачиваем ошибку
 	if unwrapped := errors.Unwrap(err); unwrapped != nil {
 		return ConvertToGRPCError(unwrapped)
 	}
 
-	// Ошибки endpoints
 	switch {
 	case errors.Is(err, endpoints.ErrInvalidArgument):
 		return status.Error(codes.InvalidArgument, err.Error())
@@ -57,9 +53,10 @@ func ConvertToGRPCError(err error) error {
 		return status.Error(codes.Unavailable, err.Error())
 	case errors.Is(err, endpoints.ErrDataLoss):
 		return status.Error(codes.DataLoss, err.Error())
+	case errors.Is(err, endpoints.ErrAborted):
+		return status.Error(codes.Aborted, err.Error())
 	}
 
-	// Ошибки сервиса напрямую
 	var svcErr *service.ServiceError
 	if errors.As(err, &svcErr) {
 		switch svcErr.Code {
@@ -85,11 +82,12 @@ func ConvertToGRPCError(err error) error {
 			return status.Error(codes.Unavailable, svcErr.Message)
 		case "data_loss":
 			return status.Error(codes.DataLoss, svcErr.Message)
+		case "aborted":
+			return status.Error(codes.Aborted, svcErr.Message)
 		default:
 			return status.Error(codes.Internal, svcErr.Message)
 		}
 	}
 
-	// По умолчанию
 	return status.Error(codes.Internal, "internal server error: "+err.Error())
 }

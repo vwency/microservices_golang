@@ -19,6 +19,7 @@ var (
 	ErrUnavailable        = errors.New("unavailable")
 	ErrDataLoss           = errors.New("data loss")
 	ErrInternal           = errors.New("internal error")
+	ErrAborted            = errors.New("operation aborted")
 )
 
 func WrapServiceError(err error) error {
@@ -51,6 +52,8 @@ func WrapServiceError(err error) error {
 			return ErrUnavailable
 		case "data_loss":
 			return ErrDataLoss
+		case "aborted":
+			return ErrAborted
 		default:
 			return ErrInternal
 		}
@@ -79,6 +82,8 @@ func WrapServiceError(err error) error {
 		return ErrUnavailable
 	case errors.Is(err, service.ErrDataLoss):
 		return ErrDataLoss
+	case errors.Is(err, service.ErrAborted):
+		return ErrAborted
 	case errors.Is(err, service.ErrInternal):
 		return ErrInternal
 	default:

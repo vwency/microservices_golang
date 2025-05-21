@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
-	"strings"
+	"errors"
+	"net"
+	"os"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -34,9 +36,17 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 			"err", err,
 		)
 
-		if isConnectionError(err) {
-			return InitDatabaseResponse{Success: false}, NewUnavailableError("database unavailable", err)
+		// Определим, является ли ошибка сетевой (например, при подключении к БД)
+		if isNetworkError(err) {
+			return InitDatabaseResponse{Success: false}, NewUnavailableError("database is unavailable", err)
 		}
+
+		// Можно добавить распознавание других типов ошибок по необходимости
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) {
+			return InitDatabaseResponse{Success: false}, NewInvalidArgumentError("invalid config path", err)
+		}
+
 		return InitDatabaseResponse{Success: false}, NewInternalError("failed to initialize database", err)
 	}
 
@@ -50,8 +60,7 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 	}, nil
 }
 
-func isConnectionError(err error) bool {
-	return strings.Contains(err.Error(), "connection refused") ||
-		strings.Contains(err.Error(), "timeout") ||
-		strings.Contains(err.Error(), "host unreachable")
+func isNetworkError(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr)
 }

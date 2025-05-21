@@ -140,3 +140,11 @@ func NewCancelledError(msg string, err error) *ServiceError {
 		Err:     err,
 	}
 }
+
+func NewAbortedError(msg string, err error) *ServiceError {
+	return &ServiceError{
+		Code:    "aborted",
+		Message: msg,
+		Err:     err,
+	}
+}

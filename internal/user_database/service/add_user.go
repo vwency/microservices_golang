@@ -25,69 +25,67 @@ type AddUserResponse struct {
 	Message string `json:"message"`
 }
 
-func (s *userService) AddUser(ctx context.Context, request AddUserRequest) (AddUserResponse, error) {
+func (s *userService) AddUser(ctx context.Context, req AddUserRequest) (AddUserResponse, error) {
 	logger := log.With(s.logger, "method", "AddUser")
 
-	if request.UserID == "" {
+	if req.UserID == "" {
 		level.Error(logger).Log("msg", "user_id is required")
-		return AddUserResponse{}, NewInvalidArgumentError("user_id is required", nil)
+		return AddUserResponse{Success: false}, NewInvalidArgumentError("user_id is required", nil)
 	}
-	if request.Username == "" {
+
+	if req.Username == "" {
 		level.Error(logger).Log("msg", "username is required")
-		return AddUserResponse{}, NewInvalidArgumentError("username is required", nil)
+		return AddUserResponse{Success: false}, NewInvalidArgumentError("username is required", nil)
 	}
-	if request.HashedPassword == "" {
+
+	if req.HashedPassword == "" {
 		level.Error(logger).Log("msg", "hashed_password is required")
-		return AddUserResponse{}, NewInvalidArgumentError("hashed_password is required", nil)
+		return AddUserResponse{Success: false}, NewInvalidArgumentError("hashed_password is required", nil)
 	}
 
-	userID, err := uuid.Parse(request.UserID)
+	userID, err := uuid.Parse(req.UserID)
 	if err != nil {
-		level.Warn(logger).Log("msg", "invalid user_id format", "user_id", request.UserID, "err", err)
-		// Возвращаем ошибку с кодом InvalidArgument
-		return AddUserResponse{}, NewInvalidArgumentError("invalid user_id format", err)
+		level.Warn(logger).Log("msg", "invalid user_id format", "user_id", req.UserID, "err", err)
+		return AddUserResponse{Success: false}, NewInvalidArgumentError("invalid user_id format", err)
 	}
 
-	existingUserByID, err := s.repo.UserRepo.GetUserByID(request.UserID)
-	if err != nil {
-		if status.Code(err) != codes.NotFound {
-			level.Error(logger).Log("msg", "failed to check user existence by ID", "user_id", request.UserID, "err", err)
-			return AddUserResponse{}, NewInternalError("failed to check user existence by ID", err)
-		}
-	} else if existingUserByID != nil {
-		level.Warn(logger).Log("msg", "user with this ID already exists", "user_id", request.UserID)
-		return AddUserResponse{}, NewAlreadyExistsError("user with this ID already exists", nil)
+	// Проверка существования по ID
+	_, err = s.repo.UserRepo.GetUserByID(req.UserID)
+	if err == nil {
+		level.Warn(logger).Log("msg", "user with this ID already exists", "user_id", req.UserID)
+		return AddUserResponse{Success: false}, NewAlreadyExistsError("user with this ID already exists", nil)
+	} else if status.Code(err) != codes.NotFound {
+		level.Error(logger).Log("msg", "failed to check user existence by ID", "user_id", req.UserID, "err", err)
+		return AddUserResponse{Success: false}, NewInternalError("failed to check user existence by ID", err)
 	}
 
-	existingUser, err := s.repo.UserRepo.GetUserByUsernameOrEmail(request.Username, request.Email)
-	if err != nil {
-		if status.Code(err) != codes.NotFound {
-			level.Error(logger).Log("msg", "failed to check user existence", "username", request.Username, "err", err)
-			return AddUserResponse{}, NewInternalError("failed to check user existence", err)
-		}
-	} else if existingUser != nil {
-		level.Warn(logger).Log("msg", "user already exists", "username", request.Username)
-		return AddUserResponse{}, NewAlreadyExistsError("user with this username/email already exists", nil)
+	// Проверка существования по username/email
+	_, err = s.repo.UserRepo.GetUserByUsernameOrEmail(req.Username, req.Email)
+	if err == nil {
+		level.Warn(logger).Log("msg", "user with this username/email already exists", "username", req.Username, "email", req.Email)
+		return AddUserResponse{Success: false}, NewAlreadyExistsError("user with this username/email already exists", nil)
+	} else if status.Code(err) != codes.NotFound {
+		level.Error(logger).Log("msg", "failed to check user existence", "username", req.Username, "email", req.Email, "err", err)
+		return AddUserResponse{Success: false}, NewInternalError("failed to check user existence", err)
 	}
 
 	user := models.User{
 		ID:                 userID,
-		Username:           request.Username,
-		HashedPassword:     request.HashedPassword,
-		HashedRefreshToken: request.HashedRefreshToken,
-		HashedAccessToken:  request.HashedAccessToken,
+		Username:           req.Username,
+		HashedPassword:     req.HashedPassword,
+		HashedRefreshToken: req.HashedRefreshToken,
+		HashedAccessToken:  req.HashedAccessToken,
 	}
-
-	if request.Email != "" {
-		user.Email = &request.Email
+	if req.Email != "" {
+		user.Email = &req.Email
 	}
 
 	if err := s.repo.UserRepo.AddUser(&user); err != nil {
-		level.Error(logger).Log("msg", "failed to create user", "username", request.Username, "user_id", request.UserID, "err", err)
-		return AddUserResponse{}, NewInternalError("failed to create user", err)
+		level.Error(logger).Log("msg", "failed to create user", "user_id", req.UserID, "username", req.Username, "err", err)
+		return AddUserResponse{Success: false}, NewInternalError("failed to create user", err)
 	}
 
-	level.Info(logger).Log("msg", "user created successfully", "username", request.Username, "user_id", request.UserID)
+	level.Info(logger).Log("msg", "user created successfully", "user_id", req.UserID, "username", req.Username)
 	return AddUserResponse{
 		Success: true,
 		Message: "user created successfully",

@@ -18,11 +18,6 @@ func decodeGetUserRequest(_ context.Context, req interface{}) (interface{}, erro
 
 func encodeGetUserResponse(_ context.Context, resp interface{}) (interface{}, error) {
 	r := resp.(endpoints.GetUserResponse)
-
-	if r.Error != nil {
-		return nil, r.Error
-	}
-
 	return &pb.GetUserResponse{
 		Found:              r.Found,
 		UserId:             r.UserID,
@@ -37,7 +32,7 @@ func encodeGetUserResponse(_ context.Context, resp interface{}) (interface{}, er
 func (s *grpcServer) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	_, res, err := s.getUser.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, ConvertToGRPCError(err)
 	}
 	return res.(*pb.GetUserResponse), nil
 }

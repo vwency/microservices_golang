@@ -33,20 +33,48 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 		return UpdateUserResponse{}, NewInvalidArgumentError("both refresh and access tokens are required", nil)
 	}
 
+	// Проверка существования пользователя
 	_, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			level.Warn(logger).Log("msg", "user not found", "user_id", req.UserID)
-			return UpdateUserResponse{}, NewNotFoundError("user not found", nil)
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.NotFound:
+				level.Warn(logger).Log("msg", "user not found", "user_id", req.UserID)
+				return UpdateUserResponse{}, NewNotFoundError("user not found", err)
+			case codes.InvalidArgument:
+				level.Error(logger).Log("msg", "invalid argument", "err", err)
+				return UpdateUserResponse{}, NewInvalidArgumentError("invalid user ID", err)
+			default:
+				level.Error(logger).Log("msg", "unexpected error getting user", "err", err)
+				return UpdateUserResponse{}, NewInternalError("unexpected error getting user", err)
+			}
 		}
-		level.Error(logger).Log("msg", "failed to verify user existence", "user_id", req.UserID, "err", err)
+
+		level.Error(logger).Log("msg", "unknown error getting user", "err", err)
 		return UpdateUserResponse{}, NewInternalError("failed to verify user existence", err)
 	}
 
+	// Обновление токенов
 	err = s.repo.UserRepo.UpdateUserTokens(req.UserID, req.HashedRefreshToken, req.HashedAccessToken)
 	if err != nil {
-		level.Error(logger).Log("msg", "failed to update tokens", "user_id", req.UserID, "err", err)
-		return UpdateUserResponse{}, NewInternalError("failed to update tokens", err)
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.InvalidArgument:
+				level.Warn(logger).Log("msg", "invalid token format", "err", err)
+				return UpdateUserResponse{}, NewInvalidArgumentError("invalid token format", err)
+			case codes.Aborted:
+				level.Warn(logger).Log("msg", "update aborted", "err", err)
+				return UpdateUserResponse{}, NewAbortedError("update aborted", err)
+			default:
+				level.Error(logger).Log("msg", "failed to update tokens", "err", err)
+				return UpdateUserResponse{}, NewInternalError("failed to update tokens", err)
+			}
+		}
+
+		level.Error(logger).Log("msg", "unknown error updating tokens", "err", err)
+		return UpdateUserResponse{}, NewInternalError("unknown error updating tokens", err)
 	}
 
 	level.Info(logger).Log("msg", "tokens updated successfully", "user_id", req.UserID)

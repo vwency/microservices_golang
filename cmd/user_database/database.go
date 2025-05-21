@@ -26,7 +26,7 @@ func newDatabaseConnection(lc fx.Lifecycle, cfg config.ServiceConfig, logger *za
 			}
 			logger.Info("Database migrations completed successfully")
 			return nil
-		},
+		}, // <-- This comma was missing
 		OnStop: func(ctx context.Context) error {
 			sqlDB, err := db.DB()
 			if err != nil {
