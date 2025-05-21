@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -33,7 +33,6 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 		return UpdateUserResponse{}, NewInvalidArgumentError("both refresh and access tokens are required", nil)
 	}
 
-	// Проверка существования пользователя
 	_, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
 		st, ok := status.FromError(err)
@@ -55,7 +54,6 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 		return UpdateUserResponse{}, NewInternalError("failed to verify user existence", err)
 	}
 
-	// Обновление токенов
 	err = s.repo.UserRepo.UpdateUserTokens(req.UserID, req.HashedRefreshToken, req.HashedAccessToken)
 	if err != nil {
 		st, ok := status.FromError(err)

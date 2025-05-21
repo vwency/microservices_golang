@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/google/uuid"
 	"github.com/vwency/microservices_golang/internal/user_database/models"
 	"google.golang.org/grpc/codes"
@@ -30,7 +30,6 @@ type GetUserResponse struct {
 func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetUserResponse, error) {
 	logger := log.With(s.logger, "method", "GetUser")
 
-	// Проверка входных параметров
 	if request.UserID == "" && request.Username == "" && request.Email == "" {
 		level.Error(logger).Log("msg", "no search criteria provided")
 		return GetUserResponse{}, NewInvalidArgumentError("username, email or userID must be provided", nil)
@@ -41,7 +40,6 @@ func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetU
 		err  error
 	)
 
-	// Поиск по user_id
 	if request.UserID != "" {
 		_, parseErr := uuid.Parse(request.UserID)
 		if parseErr != nil {
@@ -54,7 +52,6 @@ func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetU
 		user, err = s.repo.UserRepo.GetUserByUsernameOrEmail(request.Username, request.Email)
 	}
 
-	// Обработка ошибок
 	if err != nil {
 		switch status.Code(err) {
 		case codes.NotFound:
@@ -69,7 +66,6 @@ func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetU
 		}
 	}
 
-	// Подготовка и возврат ответа
 	email := ""
 	if user.Email != nil {
 		email = *user.Email

@@ -26,7 +26,6 @@ type GetUserByIDResponse struct {
 func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (GetUserByIDResponse, error) {
 	logger := log.With(s.logger, "method", "GetUserByID")
 
-	// Валидация входного запроса
 	if req.UserID == "" {
 		level.Error(logger).Log("msg", "userID is required")
 		return GetUserByIDResponse{}, NewInvalidArgumentError("userID must be provided", nil)
@@ -56,12 +55,10 @@ func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (
 			}
 		}
 
-		// Если ошибка не является ServiceError, логируем и возвращаем как internal
 		level.Error(logger).Log("msg", "unexpected error when getting user", "userID", req.UserID, "err", err)
 		return GetUserByIDResponse{}, NewInternalError("unexpected error when getting user", err)
 	}
 
-	// Защита от nil указателя в Email
 	email := ""
 	if user.Email != nil {
 		email = *user.Email

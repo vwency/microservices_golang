@@ -21,13 +21,11 @@ type InitDatabaseResponse struct {
 func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest) (InitDatabaseResponse, error) {
 	logger := log.With(s.logger, "method", "InitDatabase")
 
-	// Validate request
 	if req.ConfigPath == "" {
 		level.Error(logger).Log("msg", "config path is required")
 		return InitDatabaseResponse{Success: false}, NewInvalidArgumentError("config path is required", nil)
 	}
 
-	// Run database migrations
 	err := s.repo.UserRepo.RunMigrations()
 	if err != nil {
 		level.Error(logger).Log(
@@ -36,12 +34,10 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 			"err", err,
 		)
 
-		// Определим, является ли ошибка сетевой (например, при подключении к БД)
 		if isNetworkError(err) {
 			return InitDatabaseResponse{Success: false}, NewUnavailableError("database is unavailable", err)
 		}
 
-		// Можно добавить распознавание других типов ошибок по необходимости
 		var pathErr *os.PathError
 		if errors.As(err, &pathErr) {
 			return InitDatabaseResponse{Success: false}, NewInvalidArgumentError("invalid config path", err)

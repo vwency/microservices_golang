@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/vwency/microservices_golang/internal/user_database/repository"
 )
 

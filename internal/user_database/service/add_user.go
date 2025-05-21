@@ -49,7 +49,6 @@ func (s *userService) AddUser(ctx context.Context, req AddUserRequest) (AddUserR
 		return AddUserResponse{Success: false}, NewInvalidArgumentError("invalid user_id format", err)
 	}
 
-	// Проверка существования по ID
 	_, err = s.repo.UserRepo.GetUserByID(req.UserID)
 	if err == nil {
 		level.Warn(logger).Log("msg", "user with this ID already exists", "user_id", req.UserID)
@@ -59,7 +58,6 @@ func (s *userService) AddUser(ctx context.Context, req AddUserRequest) (AddUserR
 		return AddUserResponse{Success: false}, NewInternalError("failed to check user existence by ID", err)
 	}
 
-	// Проверка существования по username/email
 	_, err = s.repo.UserRepo.GetUserByUsernameOrEmail(req.Username, req.Email)
 	if err == nil {
 		level.Warn(logger).Log("msg", "user with this username/email already exists", "username", req.Username, "email", req.Email)
