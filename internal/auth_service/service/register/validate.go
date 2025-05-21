@@ -20,7 +20,7 @@ func validateRegisterInput(ctx context.Context, tracer trace.Tracer, req *authv1
 	start := time.Now()
 
 	if req.Username == "" || req.Password == "" || req.Email == "" {
-		err := error_hndl.NewAuthError(codes.InvalidArgument, "username, password and email are required")
+		err := error_hndl.NewError(codes.InvalidArgument, "username, password and email are required")
 		span.SetAttributes(
 			otelAttr.Int64("validation_duration_ns", time.Since(start).Nanoseconds()),
 			otelAttr.Bool("validation_passed", false),

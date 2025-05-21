@@ -115,7 +115,7 @@ func WrapServiceError(err error) error {
 	}
 
 	// If error is an AuthError, convert to GRPCError
-	var authErr *error_hndl.AuthError
+	var authErr *error_hndl.Error
 	if errors.As(err, &authErr) {
 		return ErrorWithDetails(authErr.Code, authErr.Message)
 	}

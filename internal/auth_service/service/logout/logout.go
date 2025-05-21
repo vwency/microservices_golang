@@ -41,7 +41,7 @@ func Logout(
 			"msg", "Missing logout credentials",
 			"username", req.Username,
 		)
-		return nil, error_hndl.NewAuthError(codes.InvalidArgument, "username and access_token are required")
+		return nil, error_hndl.NewError(codes.InvalidArgument, "username and access_token are required")
 	}
 
 	getUserResp, err := dbClient.GetUser(ctx, &databasev1.GetUserRequest{
@@ -53,7 +53,7 @@ func Logout(
 			"username", req.Username,
 			"err", err,
 		)
-		return nil, error_hndl.NewAuthError(codes.NotFound, "failed to get user")
+		return nil, error_hndl.NewError(codes.NotFound, "failed to get user")
 	}
 
 	if !getUserResp.Found {
@@ -61,7 +61,7 @@ func Logout(
 			"msg", "User not found during logout attempt",
 			"username", req.Username,
 		)
-		return nil, error_hndl.NewAuthError(codes.NotFound, "user not found")
+		return nil, error_hndl.NewError(codes.NotFound, "user not found")
 	}
 
 	if isTokenEmptyOrNone(getUserResp.HashedAccessToken) {
@@ -83,14 +83,14 @@ func Logout(
 			"username", req.Username,
 			"err", err,
 		)
-		return nil, error_hndl.NewAuthError(codes.Unauthenticated, "invalid access token")
+		return nil, error_hndl.NewError(codes.Unauthenticated, "invalid access token")
 	}
 	if !match {
 		_ = level.Warn(logger).Log(
 			"msg", "Invalid access token provided",
 			"username", req.Username,
 		)
-		return nil, error_hndl.NewAuthError(codes.Unauthenticated, "access token mismatch")
+		return nil, error_hndl.NewError(codes.Unauthenticated, "access token mismatch")
 	}
 
 	// Функция для обновления токенов с двумя попытками:
@@ -123,10 +123,10 @@ func Logout(
 					"user_id", getUserResp.UserId,
 					"err", err,
 				)
-				return nil, error_hndl.NewAuthError(codes.NotFound, "logout failed")
+				return nil, error_hndl.NewError(codes.NotFound, "logout failed")
 			}
 		} else {
-			return nil, error_hndl.NewAuthError(codes.NotFound, "logout failed")
+			return nil, error_hndl.NewError(codes.NotFound, "logout failed")
 		}
 	}
 

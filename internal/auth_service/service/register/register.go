@@ -82,7 +82,7 @@ func Register(
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
 
 		if err != nil {
-			authErr := error_hndl.NewAuthError(codes.Internal, "failed to hash password", err)
+			authErr := error_hndl.NewError(codes.Internal, "failed to hash password", err)
 			errChan <- authErr
 			span.RecordError(authErr)
 			span.SetStatus(otelCodes.Error, authErr.Error())
@@ -111,7 +111,7 @@ func Register(
 		)
 
 		if err != nil {
-			authErr := error_hndl.NewAuthError(codes.Internal, "failed to generate access token", err)
+			authErr := error_hndl.NewError(codes.Internal, "failed to generate access token", err)
 			errChan <- authErr
 			span.RecordError(authErr)
 			span.SetStatus(otelCodes.Error, authErr.Error())
@@ -137,7 +137,7 @@ func Register(
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
 
 		if err != nil {
-			authErr := error_hndl.NewAuthError(codes.Internal, "failed to generate refresh token", err)
+			authErr := error_hndl.NewError(codes.Internal, "failed to generate refresh token", err)
 			errChan <- authErr
 			span.RecordError(authErr)
 			span.SetStatus(otelCodes.Error, authErr.Error())
@@ -175,7 +175,7 @@ func Register(
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
 
 		if err != nil {
-			authErr := error_hndl.NewAuthError(codes.Internal, "failed to hash access token", err)
+			authErr := error_hndl.NewError(codes.Internal, "failed to hash access token", err)
 			errChan <- authErr
 			span.RecordError(authErr)
 			span.SetStatus(otelCodes.Error, authErr.Error())
@@ -212,7 +212,7 @@ func Register(
 		span.SetAttributes(otelAttr.Int64("duration.ns", time.Since(start).Nanoseconds()))
 
 		if err != nil {
-			authErr := error_hndl.NewAuthError(codes.Internal, "failed to hash refresh token", err)
+			authErr := error_hndl.NewError(codes.Internal, "failed to hash refresh token", err)
 			errChan <- authErr
 			span.RecordError(authErr)
 			span.SetStatus(otelCodes.Error, authErr.Error())
@@ -259,10 +259,10 @@ func Register(
 			case codes.AlreadyExists:
 				authError = error_hndl.ErrUserAlreadyExists
 			default:
-				authError = error_hndl.NewAuthError(st.Code(), "database operation failed", st.Message())
+				authError = error_hndl.NewError(st.Code(), "database operation failed", st.Message())
 			}
 		} else {
-			authError = error_hndl.NewAuthError(codes.Internal, "database operation failed", err)
+			authError = error_hndl.NewError(codes.Internal, "database operation failed", err)
 		}
 
 		dbSpan.RecordError(authError)
