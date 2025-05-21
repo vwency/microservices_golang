@@ -1,34 +1,28 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	error_hndl "github.com/vwency/microservices_golang/internal/user_database/service/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/vwency/microservices_golang/internal/user_database/service"
 )
 
-// GRPCError - кастомная ошибка с grpc кодом и сообщением
 type GRPCError struct {
 	Code    codes.Code
 	Message string
 }
 
 func (e *GRPCError) Error() string {
-	return fmt.Sprintf("code: %s, message: %s", e.Code.String(), e.Message)
+	return e.Message
 }
 
-// GRPCErrorFromStatus создает GRPCError из gRPC статуса
-func GRPCErrorFromStatus(st *status.Status) *GRPCError {
-	return &GRPCError{
-		Code:    st.Code(),
-		Message: st.Message(),
-	}
+func (e *GRPCError) GRPCStatus() *status.Status {
+	return status.New(e.Code, e.Message)
 }
 
-// Константы ошибок с grpc кодами и сообщениями
 var (
 	ErrInvalidArgument    = &GRPCError{Code: codes.InvalidArgument, Message: "invalid argument"}
 	ErrNotFound           = &GRPCError{Code: codes.NotFound, Message: "not found"}
@@ -45,91 +39,80 @@ var (
 	ErrAborted            = &GRPCError{Code: codes.Aborted, Message: "operation aborted"}
 )
 
-// WrapServiceError преобразует ошибки сервисного слоя в *GRPCError с grpc кодом
+// ErrorWithDetails создает *GRPCError с дополнительными деталями
+func ErrorWithDetails(code codes.Code, msg string, details ...interface{}) *GRPCError {
+	detailedMsg := msg
+	if len(details) > 0 {
+		detailedMsg = fmt.Sprintf("%s: %v", msg, details)
+	}
+	return &GRPCError{
+		Code:    code,
+		Message: detailedMsg,
+	}
+}
+
+// WrapServiceError преобразует ошибку сервиса или стандартную ошибку в *GRPCError
 func WrapServiceError(err error) *GRPCError {
 	if err == nil {
 		return nil
 	}
 
-	// Если это уже gRPC статус - преобразуем в GRPCError
-	if st, ok := status.FromError(err); ok {
-		return GRPCErrorFromStatus(st)
+	// Обработка ошибок контекста
+	switch {
+	case errors.Is(err, context.Canceled):
+		return ErrorWithDetails(codes.Canceled, "request canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return ErrorWithDetails(codes.DeadlineExceeded, "deadline exceeded")
 	}
 
-	// Если это уже наш GRPCError - возвращаем как есть
+	// Если уже *GRPCError, вернуть как есть
 	var grpcErr *GRPCError
 	if errors.As(err, &grpcErr) {
 		return grpcErr
 	}
 
-	// Обработка ServiceError
-	var svcErr *service.ServiceError
+	// Если это ошибка сервиса (error_hndl.Error), конвертируем с учетом кода и сообщения
+	var svcErr *error_hndl.Error
 	if errors.As(err, &svcErr) {
-		switch svcErr.Code {
-		case "invalid_argument":
-			return ErrInvalidArgument
-		case "not_found":
-			return ErrNotFound
-		case "already_exists":
-			return ErrAlreadyExists
-		case "unauthenticated":
-			return ErrUnauthenticated
-		case "permission_denied":
-			return ErrPermissionDenied
-		case "resource_exhausted":
-			return ErrResourceExhausted
-		case "failed_precondition":
-			return ErrFailedPrecondition
-		case "deadline_exceeded":
-			return ErrDeadlineExceeded
-		case "cancelled":
-			return ErrCanceled
-		case "unavailable":
-			return ErrUnavailable
-		case "data_loss":
-			return ErrDataLoss
-		case "aborted":
-			return ErrAborted
-		default:
-			return &GRPCError{
-				Code:    codes.Internal,
-				Message: svcErr.Message,
-			}
-		}
+		return ErrorWithDetails(svcErr.Code, svcErr.Message)
 	}
 
-	// Обработка стандартных ошибок сервиса
+	// Обработка ошибок из error_hndl
 	switch {
-	case errors.Is(err, service.ErrInvalidArgument):
+	case errors.Is(err, error_hndl.ErrInvalidArgument):
 		return ErrInvalidArgument
-	case errors.Is(err, service.ErrNotFound):
+	case errors.Is(err, error_hndl.ErrNotFound):
 		return ErrNotFound
-	case errors.Is(err, service.ErrAlreadyExists):
+	case errors.Is(err, error_hndl.ErrAlreadyExists):
 		return ErrAlreadyExists
-	case errors.Is(err, service.ErrUnauthenticated):
+	case errors.Is(err, error_hndl.ErrUnauthenticated):
 		return ErrUnauthenticated
-	case errors.Is(err, service.ErrPermissionDenied):
+	case errors.Is(err, error_hndl.ErrPermissionDenied):
 		return ErrPermissionDenied
-	case errors.Is(err, service.ErrResourceExhausted):
+	case errors.Is(err, error_hndl.ErrResourceExhausted):
 		return ErrResourceExhausted
-	case errors.Is(err, service.ErrFailedPrecondition):
+	case errors.Is(err, error_hndl.ErrFailedPrecondition):
 		return ErrFailedPrecondition
-	case errors.Is(err, service.ErrDeadlineExceeded):
+	case errors.Is(err, error_hndl.ErrDeadlineExceeded):
 		return ErrDeadlineExceeded
-	case errors.Is(err, service.ErrCancelled):
+	case errors.Is(err, error_hndl.ErrCancelled):
 		return ErrCanceled
-	case errors.Is(err, service.ErrUnavailable):
+	case errors.Is(err, error_hndl.ErrUnavailable):
 		return ErrUnavailable
-	case errors.Is(err, service.ErrDataLoss):
+	case errors.Is(err, error_hndl.ErrDataLoss):
 		return ErrDataLoss
-	case errors.Is(err, service.ErrAborted):
+	case errors.Is(err, error_hndl.ErrAborted):
 		return ErrAborted
-	case errors.Is(err, service.ErrInternal):
+	case errors.Is(err, error_hndl.ErrInternal):
 		return ErrInternal
-	default:
-		return &GRPCError{
-			Code:    codes.Internal,
-			Message: err.Error(),
-		}
+	case errors.Is(err, error_hndl.ErrUnknown):
+		return ErrorWithDetails(codes.Unknown, "unknown error")
+	case errors.Is(err, error_hndl.ErrNotImplemented):
+		return ErrorWithDetails(codes.Unimplemented, "not implemented")
+	case errors.Is(err, error_hndl.ErrOutOfRange):
+		return ErrorWithDetails(codes.OutOfRange, "out of range")
 	}
+
+	// По умолчанию — внутренняя ошибка с сообщением из err
+	return ErrorWithDetails(codes.Internal, "internal server error", err)
 }

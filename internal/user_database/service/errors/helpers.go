@@ -1,10 +1,13 @@
 package errors
 
 import (
-	"google.golang.org/grpc/codes"
+	"errors"
 )
 
-func isError(err error, code codes.Code) bool {
-	ae, ok := err.(*Error)
-	return ok && ae.Code == code
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+func As(err error, target **Error) bool {
+	return errors.As(err, target)
 }

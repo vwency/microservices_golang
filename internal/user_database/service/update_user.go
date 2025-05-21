@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/vwency/microservices_golang/internal/auth_service/service/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -24,13 +25,15 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 	logger := log.With(s.logger, "method", "UpdateUser")
 
 	if req.UserID == "" {
-		level.Error(logger).Log("msg", "user_id is required")
-		return UpdateUserResponse{}, NewInvalidArgumentError("user_id is required", nil)
+		err := errors.NewError(codes.InvalidArgument, "user_id is required")
+		level.Error(logger).Log("msg", err.Error())
+		return UpdateUserResponse{}, err
 	}
 
 	if req.HashedRefreshToken == "" || req.HashedAccessToken == "" {
-		level.Error(logger).Log("msg", "both refresh and access tokens are required")
-		return UpdateUserResponse{}, NewInvalidArgumentError("both refresh and access tokens are required", nil)
+		err := errors.NewError(codes.InvalidArgument, "both refresh and access tokens are required")
+		level.Error(logger).Log("msg", err.Error())
+		return UpdateUserResponse{}, err
 	}
 
 	_, err := s.repo.UserRepo.GetUserByID(req.UserID)
@@ -40,18 +43,18 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 			switch st.Code() {
 			case codes.NotFound:
 				level.Warn(logger).Log("msg", "user not found", "user_id", req.UserID)
-				return UpdateUserResponse{}, NewNotFoundError("user not found", err)
+				return UpdateUserResponse{}, errors.NewError(codes.NotFound, "user not found: "+err.Error())
 			case codes.InvalidArgument:
 				level.Error(logger).Log("msg", "invalid argument", "err", err)
-				return UpdateUserResponse{}, NewInvalidArgumentError("invalid user ID", err)
+				return UpdateUserResponse{}, errors.NewError(codes.InvalidArgument, "invalid user ID: "+err.Error())
 			default:
 				level.Error(logger).Log("msg", "unexpected error getting user", "err", err)
-				return UpdateUserResponse{}, NewInternalError("unexpected error getting user", err)
+				return UpdateUserResponse{}, errors.NewError(codes.Internal, "unexpected error getting user: "+err.Error())
 			}
 		}
 
 		level.Error(logger).Log("msg", "unknown error getting user", "err", err)
-		return UpdateUserResponse{}, NewInternalError("failed to verify user existence", err)
+		return UpdateUserResponse{}, errors.NewError(codes.Internal, "failed to verify user existence: "+err.Error())
 	}
 
 	err = s.repo.UserRepo.UpdateUserTokens(req.UserID, req.HashedRefreshToken, req.HashedAccessToken)
@@ -61,18 +64,18 @@ func (s *userService) UpdateUser(ctx context.Context, req UpdateUserRequest) (Up
 			switch st.Code() {
 			case codes.InvalidArgument:
 				level.Warn(logger).Log("msg", "invalid token format", "err", err)
-				return UpdateUserResponse{}, NewInvalidArgumentError("invalid token format", err)
+				return UpdateUserResponse{}, errors.NewError(codes.InvalidArgument, "invalid token format: "+err.Error())
 			case codes.Aborted:
 				level.Warn(logger).Log("msg", "update aborted", "err", err)
-				return UpdateUserResponse{}, NewAbortedError("update aborted", err)
+				return UpdateUserResponse{}, errors.NewError(codes.Aborted, "update aborted: "+err.Error())
 			default:
 				level.Error(logger).Log("msg", "failed to update tokens", "err", err)
-				return UpdateUserResponse{}, NewInternalError("failed to update tokens", err)
+				return UpdateUserResponse{}, errors.NewError(codes.Internal, "failed to update tokens: "+err.Error())
 			}
 		}
 
 		level.Error(logger).Log("msg", "unknown error updating tokens", "err", err)
-		return UpdateUserResponse{}, NewInternalError("unknown error updating tokens", err)
+		return UpdateUserResponse{}, errors.NewError(codes.Internal, "unknown error updating tokens: "+err.Error())
 	}
 
 	level.Info(logger).Log("msg", "tokens updated successfully", "user_id", req.UserID)

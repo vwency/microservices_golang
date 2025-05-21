@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
 	"github.com/vwency/microservices_golang/internal/user_database/models"
+	"github.com/vwency/microservices_golang/internal/user_database/service/errors"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type GetUserRequest struct {
@@ -27,43 +27,46 @@ type GetUserResponse struct {
 	HashedAccessToken  string `json:"hashed_access_token"`
 }
 
-func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetUserResponse, error) {
+func (s *userService) GetUser(ctx context.Context, req GetUserRequest) (GetUserResponse, error) {
 	logger := log.With(s.logger, "method", "GetUser")
 
-	if request.UserID == "" && request.Username == "" && request.Email == "" {
-		level.Error(logger).Log("msg", "no search criteria provided")
-		return GetUserResponse{}, NewInvalidArgumentError("username, email or userID must be provided", nil)
+	if req.UserID == "" && req.Username == "" && req.Email == "" {
+		err := errors.NewError(codes.InvalidArgument, "username, email or userID must be provided")
+		level.Error(logger).Log("err", err)
+		return GetUserResponse{}, err
 	}
 
-	var (
-		user *models.User
-		err  error
-	)
+	var user *models.User
+	var err error
 
-	if request.UserID != "" {
-		_, parseErr := uuid.Parse(request.UserID)
-		if parseErr != nil {
-			level.Warn(logger).Log("msg", "invalid user_id format", "user_id", request.UserID, "err", parseErr)
-			return GetUserResponse{}, NewInvalidArgumentError("invalid user_id format", parseErr)
+	if req.UserID != "" {
+		if _, parseErr := uuid.Parse(req.UserID); parseErr != nil {
+			err = errors.NewError(codes.InvalidArgument, "invalid user_id format")
+			level.Warn(logger).Log("err", err, "user_id", req.UserID)
+			return GetUserResponse{}, err
 		}
 
-		user, err = s.repo.UserRepo.GetUserByID(request.UserID)
+		user, err = s.repo.UserRepo.GetUserByID(req.UserID)
 	} else {
-		user, err = s.repo.UserRepo.GetUserByUsernameOrEmail(request.Username, request.Email)
+		user, err = s.repo.UserRepo.GetUserByUsernameOrEmail(req.Username, req.Email)
 	}
 
 	if err != nil {
-		switch status.Code(err) {
-		case codes.NotFound:
-			level.Warn(logger).Log("msg", "user not found", "user_id", request.UserID, "username", request.Username, "email", request.Email)
-			return GetUserResponse{}, NewNotFoundError("user not found", err)
-		case codes.InvalidArgument:
-			level.Warn(logger).Log("msg", "invalid request parameters", "err", err)
-			return GetUserResponse{}, NewInvalidArgumentError("invalid request parameters", err)
-		default:
-			level.Error(logger).Log("msg", "failed to get user", "err", err)
-			return GetUserResponse{}, NewInternalError("failed to get user", err)
+		var grpcErr *errors.Error
+		if errors.As(err, &grpcErr) {
+			level.Warn(logger).Log("err", grpcErr)
+			return GetUserResponse{}, grpcErr
 		}
+
+		if errors.Is(err, errors.ErrNotFound) {
+			err = errors.NewError(codes.NotFound, "user not found")
+			level.Warn(logger).Log("err", err)
+			return GetUserResponse{}, err
+		}
+
+		err = errors.NewError(codes.Internal, "failed to get user")
+		level.Error(logger).Log("err", err)
+		return GetUserResponse{}, err
 	}
 
 	email := ""
@@ -71,7 +74,7 @@ func (s *userService) GetUser(ctx context.Context, request GetUserRequest) (GetU
 		email = *user.Email
 	}
 
-	level.Info(logger).Log("msg", "user found", "user_id", user.ID.String(), "username", user.Username)
+	level.Info(logger).Log("msg", "user found", "userID", user.ID.String())
 
 	return GetUserResponse{
 		Found:              true,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/vwency/microservices_golang/internal/auth_service/service/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,7 +23,7 @@ func (s *userService) DeleteUser(ctx context.Context, req DeleteUserRequest) (De
 	logger := log.With(s.logger, "method", "DeleteUser")
 
 	if req.UserID == "" {
-		err := NewInvalidArgumentError("user_id is required", nil)
+		err := errors.NewError(codes.InvalidArgument, "user_id is required")
 		level.Error(logger).Log("msg", err.Error())
 		return DeleteUserResponse{Success: false, Message: err.Message}, err
 	}
@@ -30,20 +31,20 @@ func (s *userService) DeleteUser(ctx context.Context, req DeleteUserRequest) (De
 	_, err := s.repo.UserRepo.GetUserByID(req.UserID)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			wrappedErr := NewNotFoundError("user not found", nil)
-			level.Warn(logger).Log("msg", wrappedErr.Error(), "userID", req.UserID)
-			return DeleteUserResponse{Success: false, Message: wrappedErr.Message}, wrappedErr
+			errNotFound := errors.NewError(codes.NotFound, "user not found")
+			level.Warn(logger).Log("msg", errNotFound.Error(), "userID", req.UserID)
+			return DeleteUserResponse{Success: false, Message: errNotFound.Message}, errNotFound
 		}
-		wrappedErr := NewInternalError("failed to get user", err)
-		level.Error(logger).Log("msg", wrappedErr.Error(), "userID", req.UserID, "err", err)
-		return DeleteUserResponse{Success: false, Message: wrappedErr.Message}, wrappedErr
+		errInternal := errors.NewError(codes.Internal, "failed to get user: "+err.Error())
+		level.Error(logger).Log("msg", errInternal.Error(), "userID", req.UserID, "err", err)
+		return DeleteUserResponse{Success: false, Message: errInternal.Message}, errInternal
 	}
 
 	err = s.repo.UserRepo.DeleteUser(req.UserID)
 	if err != nil {
-		wrappedErr := NewInternalError("failed to delete user", err)
-		level.Error(logger).Log("msg", wrappedErr.Error(), "userID", req.UserID, "err", err)
-		return DeleteUserResponse{Success: false, Message: wrappedErr.Message}, wrappedErr
+		errInternal := errors.NewError(codes.Internal, "failed to delete user: "+err.Error())
+		level.Error(logger).Log("msg", errInternal.Error(), "userID", req.UserID, "err", err)
+		return DeleteUserResponse{Success: false, Message: errInternal.Message}, errInternal
 	}
 
 	level.Info(logger).Log("msg", "user deleted successfully", "userID", req.UserID)
