@@ -11,7 +11,7 @@ import (
 func (s *grpcServer) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	_, resp, err := s.logout.ServeGRPC(ctx, req)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "logout failed: %v", err)
+		return nil, GRPCErrorWrapper(err) // Здесь применяем обёртку
 	}
 	return resp.(*authv1.LogoutResponse), nil
 }
@@ -19,7 +19,7 @@ func (s *grpcServer) Logout(ctx context.Context, req *authv1.LogoutRequest) (*au
 func decodeLogoutRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req, ok := request.(*authv1.LogoutRequest)
 	if !ok {
-		return nil, status.Error(codes.InvalidArgument, "invalid request type")
+		return nil, GRPCErrorWrapper(status.Error(codes.InvalidArgument, "invalid request type"))
 	}
 	return req, nil
 }
@@ -27,7 +27,7 @@ func decodeLogoutRequest(_ context.Context, request interface{}) (interface{}, e
 func encodeLogoutResponse(_ context.Context, response interface{}) (interface{}, error) {
 	resp, ok := response.(*authv1.LogoutResponse)
 	if !ok {
-		return nil, status.Error(codes.Internal, "invalid response type")
+		return nil, GRPCErrorWrapper(status.Error(codes.Internal, "invalid response type"))
 	}
 	return resp, nil
 }

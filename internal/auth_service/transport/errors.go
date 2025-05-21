@@ -1,40 +1,43 @@
 package transport
 
 import (
-	"context"
+	"errors"
+	"fmt"
 
-	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/vwency/microservices_golang/internal/auth_service/endpoints"
 )
 
-type GRPCStatusCoder interface {
-	GRPCStatus() *status.Status
+// GRPCErrorWrapper converts service-layer errors into proper gRPC errors with status codes.
+func GRPCErrorWrapper(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Если это уже gRPC статус - возвращаем как есть
+	if st, ok := status.FromError(err); ok {
+		return st.Err()
+	}
+
+	// Используем вашу обёртку из endpoints для преобразования
+	wrappedErr := endpoints.WrapServiceError(err)
+
+	// Если после обёртки получаем *endpoints.GRPCError, создаём status.Error
+	var grpcErr *endpoints.GRPCError
+	if errors.As(wrappedErr, &grpcErr) {
+		return status.Error(grpcErr.Code, grpcErr.Message)
+	}
+
+	// В крайнем случае возвращаем Internal с сообщением
+	return status.Errorf(codes.Internal, "unknown error: %v", err)
 }
 
-func ErrorEncoder(logger log.Logger) endpoint.Middleware {
-	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, request interface{}) (interface{}, error) {
-			resp, err := next(ctx, request)
-			if err == nil {
-				return resp, nil
-			}
-
-			logger.Log("error", err)
-
-			// Если ошибка уже имеет gRPC-статус, возвращаем как есть
-			if st, ok := status.FromError(err); ok {
-				return nil, st.Err()
-			}
-
-			// Если ошибка реализует GRPCStatusCoder, используем её
-			if sc, ok := err.(GRPCStatusCoder); ok {
-				return nil, sc.GRPCStatus().Err()
-			}
-
-			// Все остальные ошибки — Internal
-			return nil, status.Error(codes.Internal, err.Error())
-		}
+// Helper для форматирования логов (опционально)
+func LogGRPCError(err error) string {
+	if st, ok := status.FromError(err); ok {
+		return fmt.Sprintf("gRPC status error - Code: %s, Message: %s", st.Code(), st.Message())
 	}
+	return fmt.Sprintf("non gRPC error: %v", err)
 }

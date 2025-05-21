@@ -53,7 +53,7 @@ func Logout(
 			"username", req.Username,
 			"err", err,
 		)
-		return nil, error_hndl.NewAuthError(codes.Internal, "failed to get user")
+		return nil, error_hndl.NewAuthError(codes.NotFound, "failed to get user")
 	}
 
 	if !getUserResp.Found {
@@ -123,10 +123,10 @@ func Logout(
 					"user_id", getUserResp.UserId,
 					"err", err,
 				)
-				return nil, error_hndl.NewAuthError(codes.Internal, "logout failed")
+				return nil, error_hndl.NewAuthError(codes.NotFound, "logout failed")
 			}
 		} else {
-			return nil, error_hndl.NewAuthError(codes.Internal, "logout failed")
+			return nil, error_hndl.NewAuthError(codes.NotFound, "logout failed")
 		}
 	}
 

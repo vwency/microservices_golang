@@ -56,7 +56,7 @@ var (
 	ErrUsernameTaken         = NewAuthError(codes.AlreadyExists, "username taken")
 	ErrEmailTaken            = NewAuthError(codes.AlreadyExists, "email taken")
 	ErrSessionNotFound       = NewAuthError(codes.NotFound, "session not found")
-	ErrLogoutFailed          = NewAuthError(codes.Internal, "logout failed")
+	ErrLogoutFailed          = NewAuthError(codes.NotFound, "logout failed")
 	ErrPasswordMismatch      = NewAuthError(codes.InvalidArgument, "password mismatch")
 	ErrAccountDisabled       = NewAuthError(codes.PermissionDenied, "account disabled")
 	ErrTokenRevoked          = NewAuthError(codes.Unauthenticated, "token revoked")
