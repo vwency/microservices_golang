@@ -9,3 +9,4 @@
 - OTLP
 - Add keep-alive
 - Fix latency
+- Zero logger
