@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	stdErrors "errors" // Стандартный пакет errors с псевдонимом
+	stdErrors "errors"
 	"net"
 	"os"
 
+	error_hndl "github.com/vwency/microservices_golang/internal/user_database/service/errors"
+
 	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
-	"github.com/vwency/microservices_golang/internal/auth_service/service/errors" // твой кастомный errors
+	"github.com/go-kit/log/level" // ваш кастомный errors
 	"google.golang.org/grpc/codes"
 )
 
@@ -24,7 +25,7 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 	logger := log.With(s.logger, "method", "InitDatabase")
 
 	if req.ConfigPath == "" {
-		err := errors.NewError(codes.InvalidArgument, "config path is required")
+		err := error_hndl.NewError(codes.InvalidArgument, "config path is required")
 		level.Error(logger).Log("msg", err.Error())
 		return InitDatabaseResponse{Success: false}, err
 	}
@@ -38,17 +39,17 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 		)
 
 		if isNetworkError(err) {
-			errUnavailable := errors.NewError(codes.Unavailable, "database is unavailable: "+err.Error())
+			errUnavailable := error_hndl.NewError(codes.Unavailable, "database is unavailable: "+err.Error())
 			return InitDatabaseResponse{Success: false}, errUnavailable
 		}
 
 		var pathErr *os.PathError
-		if stdErrors.As(err, &pathErr) { // Используем stdErrors.As для проверки типа ошибки
-			errInvalid := errors.NewError(codes.InvalidArgument, "invalid config path: "+err.Error())
+		if stdErrors.As(err, &pathErr) {
+			errInvalid := error_hndl.NewError(codes.InvalidArgument, "invalid config path: "+err.Error())
 			return InitDatabaseResponse{Success: false}, errInvalid
 		}
 
-		errInternal := errors.NewError(codes.Internal, "failed to initialize database: "+err.Error())
+		errInternal := error_hndl.NewError(codes.Internal, "failed to initialize database: "+err.Error())
 		return InitDatabaseResponse{Success: false}, errInternal
 	}
 
@@ -64,5 +65,5 @@ func (s *userService) InitDatabase(ctx context.Context, req InitDatabaseRequest)
 
 func isNetworkError(err error) bool {
 	var netErr net.Error
-	return stdErrors.As(err, &netErr) // Здесь тоже используем stdErrors.As
+	return stdErrors.As(err, &netErr)
 }

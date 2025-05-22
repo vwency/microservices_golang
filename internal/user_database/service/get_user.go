@@ -7,7 +7,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
 	"github.com/vwency/microservices_golang/internal/user_database/models"
-	"github.com/vwency/microservices_golang/internal/user_database/service/errors"
+	error_hndl "github.com/vwency/microservices_golang/internal/user_database/service/errors"
 	"google.golang.org/grpc/codes"
 )
 
@@ -31,7 +31,7 @@ func (s *userService) GetUser(ctx context.Context, req GetUserRequest) (GetUserR
 	logger := log.With(s.logger, "method", "GetUser")
 
 	if req.UserID == "" && req.Username == "" && req.Email == "" {
-		err := errors.NewError(codes.InvalidArgument, "username, email or userID must be provided")
+		err := error_hndl.NewError(codes.InvalidArgument, "username, email or userID must be provided")
 		level.Error(logger).Log("err", err)
 		return GetUserResponse{}, err
 	}
@@ -41,7 +41,7 @@ func (s *userService) GetUser(ctx context.Context, req GetUserRequest) (GetUserR
 
 	if req.UserID != "" {
 		if _, parseErr := uuid.Parse(req.UserID); parseErr != nil {
-			err = errors.NewError(codes.InvalidArgument, "invalid user_id format")
+			err = error_hndl.NewError(codes.InvalidArgument, "invalid user_id format")
 			level.Warn(logger).Log("err", err, "user_id", req.UserID)
 			return GetUserResponse{}, err
 		}
@@ -52,19 +52,19 @@ func (s *userService) GetUser(ctx context.Context, req GetUserRequest) (GetUserR
 	}
 
 	if err != nil {
-		var grpcErr *errors.Error
-		if errors.As(err, &grpcErr) {
+		var grpcErr *error_hndl.Error
+		if error_hndl.As(err, &grpcErr) {
 			level.Warn(logger).Log("err", grpcErr)
 			return GetUserResponse{}, grpcErr
 		}
 
-		if errors.Is(err, errors.ErrNotFound) {
-			err = errors.NewError(codes.NotFound, "user not found")
+		if error_hndl.Is(err, error_hndl.ErrNotFound) {
+			err = error_hndl.NewError(codes.NotFound, "user not found")
 			level.Warn(logger).Log("err", err)
 			return GetUserResponse{}, err
 		}
 
-		err = errors.NewError(codes.Internal, "failed to get user")
+		err = error_hndl.NewError(codes.Internal, "failed to get user")
 		level.Error(logger).Log("err", err)
 		return GetUserResponse{}, err
 	}

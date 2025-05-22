@@ -16,7 +16,6 @@ type UpdateUserRequest struct {
 type UpdateUserResponse struct {
 	Success bool
 	Message string
-	Err     error
 }
 
 func MakeUpdateUserEndpoint(s service.Service) endpoint.Endpoint {
@@ -27,17 +26,14 @@ func MakeUpdateUserEndpoint(s service.Service) endpoint.Endpoint {
 			HashedRefreshToken: req.HashedRefreshToken,
 			HashedAccessToken:  req.HashedAccessToken,
 		})
+
 		if err != nil {
-			return UpdateUserResponse{
-				Success: false,
-				Message: err.Error(),
-				Err:     err,
-			}, nil
+			return nil, WrapServiceError(err)
 		}
+
 		return UpdateUserResponse{
 			Success: res.Success,
 			Message: res.Message,
-			Err:     nil,
 		}, nil
 	}
 }

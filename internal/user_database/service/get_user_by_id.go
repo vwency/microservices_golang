@@ -6,8 +6,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/uuid"
-	"github.com/vwency/microservices_golang/internal/auth_service/service/errors"
+	error_hndl "github.com/vwency/microservices_golang/internal/user_database/service/errors"
 	"google.golang.org/grpc/codes"
+
 	"google.golang.org/grpc/status"
 )
 
@@ -29,13 +30,13 @@ func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (
 	logger := log.With(s.logger, "method", "GetUserByID")
 
 	if req.UserID == "" {
-		err := errors.NewError(codes.InvalidArgument, "userID must be provided")
+		err := error_hndl.NewError(codes.InvalidArgument, "userID must be provided")
 		level.Error(logger).Log("msg", err.Error())
 		return GetUserByIDResponse{}, err
 	}
 
 	if _, err := uuid.Parse(req.UserID); err != nil {
-		errInvalid := errors.NewError(codes.InvalidArgument, "invalid userID format: "+err.Error())
+		errInvalid := error_hndl.NewError(codes.InvalidArgument, "invalid userID format: "+err.Error())
 		level.Warn(logger).Log("msg", errInvalid.Error(), "userID", req.UserID, "err", err)
 		return GetUserByIDResponse{}, errInvalid
 	}
@@ -47,7 +48,7 @@ func (s *userService) GetUserByID(ctx context.Context, req GetUserByIDRequest) (
 			return GetUserByIDResponse{Found: false}, nil
 		}
 
-		errInternal := errors.NewError(codes.Internal, "failed to get user: "+err.Error())
+		errInternal := error_hndl.NewError(codes.Internal, "failed to get user: "+err.Error())
 		level.Error(logger).Log("msg", errInternal.Error(), "userID", req.UserID, "err", err)
 		return GetUserByIDResponse{}, errInternal
 	}
