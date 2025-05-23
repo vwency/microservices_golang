@@ -19,7 +19,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Register реализует логику регистрации пользователя
 func Register(
 	dbClient databasev1.DatabaseInitServiceClient,
 	logger interface {
@@ -70,7 +69,6 @@ func Register(
 
 	wg.Add(5)
 
-	// 1. Hash password
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "HashPassword")
@@ -91,7 +89,6 @@ func Register(
 		span.SetStatus(otelCodes.Ok, "password hashed successfully")
 	}()
 
-	// 2. Generate access token
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "GenerateAccessToken")
@@ -120,7 +117,6 @@ func Register(
 		span.SetStatus(otelCodes.Ok, "access token generated")
 	}()
 
-	// 3. Generate refresh token
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "GenerateRefreshToken")
@@ -146,7 +142,6 @@ func Register(
 		span.SetStatus(otelCodes.Ok, "refresh token generated")
 	}()
 
-	// 4. Hash access token (ждём генерации access token)
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "HashAccessToken")
@@ -154,14 +149,12 @@ func Register(
 
 		start := time.Now()
 
-		// Ждем, пока accessToken не появится или ошибка не случится
 		for {
 			if data.accessToken != "" {
 				break
 			}
 			select {
 			case err := <-errChan:
-				// Ошибка произошла в другой горутине — прекращаем
 				span.RecordError(err)
 				span.SetStatus(otelCodes.Error, "stopped due to prior error")
 				return
@@ -184,7 +177,6 @@ func Register(
 		span.SetStatus(otelCodes.Ok, "access token hashed")
 	}()
 
-	// 5. Hash refresh token (ждём генерации refresh token)
 	go func() {
 		defer wg.Done()
 		_, span := tracer.Start(ctx, "HashRefreshToken")
@@ -192,7 +184,6 @@ func Register(
 
 		start := time.Now()
 
-		// Ждем, пока refreshToken не появится или ошибка не случится
 		for {
 			if data.refreshToken != "" {
 				break
@@ -223,7 +214,6 @@ func Register(
 
 	wg.Wait()
 
-	// Проверка ошибок из горутин
 	select {
 	case err := <-errChan:
 		span.RecordError(err)
@@ -233,7 +223,6 @@ func Register(
 		close(errChan)
 	}
 
-	// Запрос на добавление пользователя в базу
 	dbReq := &databasev1.AddUserRequest{
 		Username:           req.Username,
 		HashedPassword:     data.hashedPassword,

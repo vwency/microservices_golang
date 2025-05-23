@@ -28,13 +28,11 @@ func MakeLogoutEndpoint(s service.AuthService) endpoint.Endpoint {
 			fmt.Printf("[ERROR] Logout failed: %v\n", err)
 
 			if st, ok := status.FromError(err); ok {
-				// Сохраняем оригинальный gRPC статус
 				fmt.Printf("[DEBUG] gRPC status error - Code: %s, Message: %s\n",
 					st.Code(), st.Message())
-				return nil, st.Err() // Возвращаем оригинальную ошибку со статусом
+				return nil, st.Err()
 			} else {
 				fmt.Println("[DEBUG] Non-gRPC error type")
-				// Для не-gRPC ошибок возвращаем как Internal
 				return nil, status.Error(codes.Internal, err.Error())
 			}
 		}

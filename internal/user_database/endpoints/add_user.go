@@ -33,10 +33,9 @@ func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
 			UserID:             req.UserID,
 		})
 
-		// Важно всегда оборачивать ошибки сервиса
 		if err != nil {
 			wrappedErr := WrapServiceError(err)
-			return nil, wrappedErr // Убедитесь, что возвращается обёрнутая ошибка
+			return nil, wrappedErr
 		}
 		return AddUserResponse{Success: res.Success, Message: res.Message}, nil
 	}

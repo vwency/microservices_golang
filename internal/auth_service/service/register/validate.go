@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// validateRegisterInput проверяет обязательные поля запроса регистрации
 func validateRegisterInput(ctx context.Context, tracer trace.Tracer, req *authv1.RegisterRequest) error {
 	ctx, span := tracer.Start(ctx, "InputValidation")
 	defer span.End()

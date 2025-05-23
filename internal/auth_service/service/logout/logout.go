@@ -74,7 +74,6 @@ func Logout(
 				return nil, error_hndl.ErrDatabaseFailure
 			}
 		}
-		// Если ошибка не gRPC, логируем и возвращаем общую ошибку
 		_ = level.Error(logger).Log(
 			"msg", "Unknown error during GetUser",
 			"username", req.Username,

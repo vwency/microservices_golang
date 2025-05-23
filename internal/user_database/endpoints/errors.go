@@ -11,23 +11,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GRPCError — универсальная обёртка над gRPC ошибками.
 type GRPCError struct {
 	Code    codes.Code
 	Message string
 }
 
-// Error реализует интерфейс error.
 func (e *GRPCError) Error() string {
 	return e.Message
 }
 
-// GRPCStatus реализует интерфейс grpcstatus.
 func (e *GRPCError) GRPCStatus() *status.Status {
 	return status.New(e.Code, e.Message)
 }
 
-// ErrorWithDetails создает GRPCError с дополнительными деталями.
 func ErrorWithDetails(code codes.Code, msg string, details ...interface{}) *GRPCError {
 	detailedMsg := msg
 	if len(details) > 0 {
@@ -39,7 +35,6 @@ func ErrorWithDetails(code codes.Code, msg string, details ...interface{}) *GRPC
 	}
 }
 
-// Стандартные предопределённые ошибки.
 var (
 	ErrInvalidArgument    = &GRPCError{Code: codes.InvalidArgument, Message: "invalid argument"}
 	ErrNotFound           = &GRPCError{Code: codes.NotFound, Message: "not found"}
@@ -59,7 +54,6 @@ var (
 	ErrOutOfRange         = &GRPCError{Code: codes.OutOfRange, Message: "out of range"}
 )
 
-// WrapServiceError оборачивает любую ошибку в GRPCError.
 func WrapServiceError(err error) *GRPCError {
 	if err == nil {
 		return nil

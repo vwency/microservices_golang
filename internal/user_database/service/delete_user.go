@@ -65,9 +65,7 @@ func (s *userService) DeleteUser(ctx context.Context, req DeleteUserRequest) (De
 	}, nil
 }
 
-// isInvalidUUIDError проверяет, является ли ошибка связанной с невалидным UUID
 func isInvalidUUIDError(err error) bool {
-	// Проверяем наличие SQLSTATE 22P02 в ошибке (для PostgreSQL)
 	return strings.Contains(err.Error(), "SQLSTATE 22P02") ||
 		strings.Contains(err.Error(), "invalid input syntax for type uuid")
 }

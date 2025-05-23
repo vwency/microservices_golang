@@ -11,14 +11,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// TraceEndpoint создает middleware для трассировки вызовов endpoint
 func TraceEndpoint(tracer trace.Tracer, name string) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-			// Начинаем замер времени выполнения
 			startTime := time.Now()
 
-			// Создаем span с учетом возможного родительского span из контекста
 			ctx, span := tracer.Start(
 				trace.ContextWithRemoteSpanContext(ctx, trace.SpanContextFromContext(ctx)),
 				name,
@@ -29,7 +26,6 @@ func TraceEndpoint(tracer trace.Tracer, name string) endpoint.Middleware {
 				),
 			)
 			defer func() {
-				// Завершаем span и логируем результат
 				duration := time.Since(startTime)
 				span.SetAttributes(attribute.Int64("duration_ms", duration.Milliseconds()))
 
@@ -50,19 +46,16 @@ func TraceEndpoint(tracer trace.Tracer, name string) endpoint.Middleware {
 				return next(ctx, request)
 			}
 
-			// Добавляем атрибуты из запроса
 			if req, ok := request.(interface{ GetTraceInfo() map[string]string }); ok && req != nil {
 				for k, v := range req.GetTraceInfo() {
-					if v != "" { // Добавляем только непустые значения
+					if v != "" {
 						span.SetAttributes(attribute.String("request."+k, v))
 					}
 				}
 			}
 
-			// Выполняем следующий обработчик в цепочке
 			response, err = next(ctx, request)
 
-			// Добавляем атрибуты из ответа
 			if err == nil && response != nil {
 				if resp, ok := response.(interface{ GetTraceInfo() map[string]string }); ok && resp != nil {
 					for k, v := range resp.GetTraceInfo() {

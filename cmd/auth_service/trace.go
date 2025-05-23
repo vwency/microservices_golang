@@ -16,7 +16,6 @@ import (
 func registerTracerShutdown(lc fx.Lifecycle, tp *sdktrace.TracerProvider) {
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
-			// graceful shutdown TracerProvider (отправка всех спанов)
 			return tp.Shutdown(ctx)
 		},
 	})
@@ -28,7 +27,6 @@ func initTrace(lc fx.Lifecycle) (*sdktrace.TracerProvider, error) {
 	exp, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint("127.0.0.1:4317"),
-		// Remove WithBlock to prevent hanging if collector isn't ready
 		otlptracegrpc.WithReconnectionPeriod(5*time.Second),
 	)
 	if err != nil {
@@ -40,12 +38,11 @@ func initTrace(lc fx.Lifecycle) (*sdktrace.TracerProvider, error) {
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("auth_service"), // Changed to match your service
+			semconv.ServiceName("auth_service"),
 			semconv.ServiceVersion("1.0.0"),
 		)),
 	)
 
-	// Add shutdown hook
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			return tp.Shutdown(ctx)

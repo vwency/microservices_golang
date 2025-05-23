@@ -60,7 +60,6 @@ func newDatabaseConnection(cfg config.ServiceConfig) (*grpc.ClientConn, error) {
 
 	conn.Connect()
 
-	// Ожидаем установления соединения
 	state := conn.GetState()
 	if state != connectivity.Ready {
 		if !conn.WaitForStateChange(ctx, state) {

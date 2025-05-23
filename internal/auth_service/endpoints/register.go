@@ -16,10 +16,8 @@ import (
 
 func MakeRegisterEndpoint(s service.AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		// Создаем tracer
 		tracer := otel.Tracer("auth_service.endpoint")
 
-		// Span для всей обработки endpoint
 		ctx, span := tracer.Start(ctx, "RegisterEndpoint",
 			trace.WithAttributes(
 				attribute.String("component", "endpoint"),
@@ -27,7 +25,6 @@ func MakeRegisterEndpoint(s service.AuthService) endpoint.Endpoint {
 			))
 		defer span.End()
 
-		// 1. Проверка типа запроса
 		_, typeCheckSpan := tracer.Start(ctx, "Register.TypeCheck")
 		req, ok := request.(*authv1.RegisterRequest)
 		typeCheckSpan.End()
@@ -38,13 +35,11 @@ func MakeRegisterEndpoint(s service.AuthService) endpoint.Endpoint {
 			return nil, status.Error(grpc_codes.InvalidArgument, "invalid request type")
 		}
 
-		// Добавляем атрибуты запроса в span
 		span.SetAttributes(
 			attribute.String("request.email", req.GetEmail()),
 			attribute.String("request.username", req.GetUsername()),
 		)
 
-		// 2. Вызов сервисного слоя
 		_, serviceCallSpan := tracer.Start(ctx, "Register.ServiceCall")
 		res, err := s.Register(ctx, req)
 		serviceCallSpan.End()
@@ -55,7 +50,6 @@ func MakeRegisterEndpoint(s service.AuthService) endpoint.Endpoint {
 			return nil, err
 		}
 
-		// Добавляем атрибуты ответа
 		if res != nil {
 			span.SetAttributes(
 				attribute.String("response.access_token", res.GetAccessToken()),
