@@ -36,3 +36,20 @@ func validateRegisterInput(ctx context.Context, tracer trace.Tracer, req *authv1
 	span.SetStatus(otelCodes.Ok, "validation passed")
 	return nil
 }
+
+func validateRegisterInputFast(req *authv1.RegisterRequest) error {
+	if req.Username == "" {
+		return error_hndl.NewError(codes.InvalidArgument, "username is required", nil)
+	}
+	if req.Email == "" {
+		return error_hndl.NewError(codes.InvalidArgument, "email is required", nil)
+	}
+	if req.Password == "" {
+		return error_hndl.NewError(codes.InvalidArgument, "password is required", nil)
+	}
+	if len(req.Password) < 8 {
+		return error_hndl.NewError(codes.InvalidArgument, "password too short", nil)
+	}
+	// Дополнительные проверки можно добавить здесь
+	return nil
+}
