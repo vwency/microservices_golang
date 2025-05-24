@@ -68,7 +68,6 @@ const (
 	vPrefix       = "v=19"
 )
 
-// Оптимизированная функция для объединения строк без аллокаций
 func unsafeStringToBytes(s string) []byte {
 	return (*[0x7fff0000]byte)(unsafe.Pointer(
 		(*(*uintptr)(unsafe.Pointer(&s)))),
@@ -80,7 +79,6 @@ func GenHash(userID, password string, p *Argon2Params) (string, error) {
 		p = DefaultArgon2Params
 	}
 
-	// Получаем буфер соли из пула
 	saltBuf := saltPool.Get().([]byte)
 	defer saltPool.Put(saltBuf)
 
@@ -89,17 +87,14 @@ func GenHash(userID, password string, p *Argon2Params) (string, error) {
 		return "", err
 	}
 
-	// Получаем буфер для пароля из пула
 	passwordBuf := passwordPool.Get().([]byte)
 	defer func() {
-		// Очищаем конфиденциальные данные перед возвратом в пул
 		for i := range passwordBuf {
 			passwordBuf[i] = 0
 		}
 		passwordPool.Put(passwordBuf[:0])
 	}()
 
-	// Создаем peppered password без дополнительных аллокаций
 	passwordBuf = passwordBuf[:0]
 	passwordBuf = append(passwordBuf, password...)
 	passwordBuf = append(passwordBuf, userID...)
@@ -113,26 +108,23 @@ func GenHash(userID, password string, p *Argon2Params) (string, error) {
 		p.KeyLength,
 	)
 
-	// Получаем builder из пула
 	builder := builderPool.Get().(*strings.Builder)
 	defer func() {
 		builder.Reset()
 		builderPool.Put(builder)
 	}()
 
-	// Предварительно рассчитываем размер для минимизации реаллокаций
 	estimatedSize := len(argon2Prefix) + 20 + len(commaT) + 10 + len(commaP) + 5 +
 		len(hashSeparator)*2 + base64.RawStdEncoding.EncodedLen(int(p.SaltLength)) +
 		base64.RawStdEncoding.EncodedLen(int(p.KeyLength))
 	builder.Grow(estimatedSize)
 
-	// Используем более эффективное форматирование
 	builder.WriteString(argon2Prefix)
 	writeUint32(builder, p.Memory)
 	builder.WriteString(commaT)
 	writeUint32(builder, p.Iterations)
 	builder.WriteString(commaP)
-	builder.WriteByte(byte('0' + p.Parallelism)) // Более быстрое преобразование для малых чисел
+	builder.WriteByte(byte('0' + p.Parallelism))
 	builder.WriteString(hashSeparator)
 
 	// Кодируем напрямую в builder
@@ -143,7 +135,6 @@ func GenHash(userID, password string, p *Argon2Params) (string, error) {
 	return builder.String(), nil
 }
 
-// Оптимизированная функция записи uint32
 func writeUint32(b *strings.Builder, n uint32) {
 	if n < 10 {
 		b.WriteByte(byte('0' + n))
@@ -152,17 +143,14 @@ func writeUint32(b *strings.Builder, n uint32) {
 	}
 }
 
-// Оптимизированная функция записи base64 напрямую в builder
 func writeBBase64(b *strings.Builder, data []byte) {
 	encodedLen := base64.RawStdEncoding.EncodedLen(len(data))
 	oldLen := b.Len()
 
-	// Расширяем builder на нужный размер
 	for i := 0; i < encodedLen; i++ {
 		b.WriteByte(0)
 	}
 
-	// Получаем slice для записи
 	str := (*b).String()
 	buf := unsafeStringToBytes(str)[oldLen : oldLen+encodedLen]
 	base64.RawStdEncoding.Encode(buf, data)
@@ -174,17 +162,14 @@ func ComparePasswordAndHash(key, password, encodedHash string) (bool, error) {
 		return false, err
 	}
 
-	// Получаем буфер из пула
 	passwordBuf := passwordPool.Get().([]byte)
 	defer func() {
-		// Очищаем конфиденциальные данные
 		for i := range passwordBuf {
 			passwordBuf[i] = 0
 		}
 		passwordPool.Put(passwordBuf[:0])
 	}()
 
-	// Создаем peppered password
 	passwordBuf = passwordBuf[:0]
 	passwordBuf = append(passwordBuf, password...)
 	passwordBuf = append(passwordBuf, key...)
@@ -194,7 +179,6 @@ func ComparePasswordAndHash(key, password, encodedHash string) (bool, error) {
 	return subtle.ConstantTimeCompare(hash, otherHash) == 1, nil
 }
 
-// Кеш для часто используемых параметров
 var paramsCache = sync.Map{}
 
 type cacheKey struct {
@@ -204,7 +188,6 @@ type cacheKey struct {
 }
 
 func decodeHash(encodedHash string) (*Argon2Params, []byte, []byte, error) {
-	// Быстрая проверка формата без Split
 	if len(encodedHash) < 30 || !strings.HasPrefix(encodedHash, "$argon2id$") {
 		return nil, nil, nil, ErrInvalidHash
 	}
@@ -218,10 +201,8 @@ func decodeHash(encodedHash string) (*Argon2Params, []byte, []byte, error) {
 		return nil, nil, nil, ErrIncompatibleVersion
 	}
 
-	// Оптимизированный парсинг параметров
 	paramsPart := vals[3]
 
-	// Находим позиции разделителей
 	tPos := strings.Index(paramsPart, commaT)
 	pPos := strings.Index(paramsPart, commaP)
 
@@ -229,26 +210,24 @@ func decodeHash(encodedHash string) (*Argon2Params, []byte, []byte, error) {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	// Парсим параметры
-	memStr := paramsPart[2:tPos] // Пропускаем "m="
+	memStr := paramsPart[2:tPos]
 	mem, err := parseUint32Fast(memStr)
 	if err != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	iterStr := paramsPart[tPos+3 : pPos] // Пропускаем ",t="
+	iterStr := paramsPart[tPos+3 : pPos]
 	iter, err := parseUint32Fast(iterStr)
 	if err != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	parallelStr := paramsPart[pPos+3:] // Пропускаем ",p="
+	parallelStr := paramsPart[pPos+3:]
 	parallel, err := strconv.ParseUint(parallelStr, 10, 8)
 	if err != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	// Проверяем кеш для параметров
 	key := cacheKey{mem, iter, uint8(parallel)}
 	if cached, ok := paramsCache.Load(key); ok {
 		p := cached.(*Argon2Params)
@@ -266,7 +245,6 @@ func decodeHash(encodedHash string) (*Argon2Params, []byte, []byte, error) {
 		return p, salt, hash, nil
 	}
 
-	// Создаем новые параметры
 	salt, err := base64.RawStdEncoding.DecodeString(vals[4])
 	if err != nil {
 		return nil, nil, nil, err
@@ -285,19 +263,16 @@ func decodeHash(encodedHash string) (*Argon2Params, []byte, []byte, error) {
 		KeyLength:   uint32(len(hashBytes)),
 	}
 
-	// Сохраняем в кеш
 	paramsCache.Store(key, p)
 
 	return p, salt, hashBytes, nil
 }
 
-// Быстрый парсинг uint32 для небольших чисел
 func parseUint32Fast(s string) (uint32, error) {
 	if len(s) == 0 {
 		return 0, fmt.Errorf("empty string")
 	}
 
-	// Для чисел до 4 цифр используем быстрый алгоритм
 	if len(s) <= 4 {
 		var result uint32
 		for i, c := range []byte(s) {
@@ -319,7 +294,6 @@ func parseUint32Fast(s string) (uint32, error) {
 		return result, nil
 	}
 
-	// Для больших чисел используем стандартный парсинг
 	val, err := strconv.ParseUint(s, 10, 32)
 	return uint32(val), err
 }
