@@ -10,6 +10,10 @@ RUN apk add --no-cache ca-certificates
 COPY --from=builder /bin/auth_service /bin/auth_service
 COPY ./config /app/config
 
+COPY --from=builder /app/config /app/config
+COPY --from=builder /app/tls /app/tls
+
+
 ENV ENV=dev \
     PORT=50056 \
     LOG_LEVEL=debug \
