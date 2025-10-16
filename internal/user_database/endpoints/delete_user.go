@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-kit/kit/endpoint"
-	"github.com/vwency/microservices_golang/internal/user_database/service"
+	"github.com/vwency/microservices_golang/internal/user_database/service/delete_user"
 )
 
 type DeleteUserRequest struct {
@@ -16,10 +16,10 @@ type DeleteUserResponse struct {
 	Message string
 }
 
-func MakeDeleteUserEndpoint(s service.Service) endpoint.Endpoint {
+func MakeDeleteUserEndpoint(s delete_user.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(DeleteUserRequest)
-		res, err := s.DeleteUser(ctx, service.DeleteUserRequest{
+		res, err := s.DeleteUser(ctx, delete_user.DeleteUserRequest{
 			UserID: req.UserID,
 		})
 		if err != nil {

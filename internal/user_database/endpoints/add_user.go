@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/vwency/microservices_golang/internal/user_database/service"
+	"github.com/vwency/microservices_golang/internal/user_database/service/add_user"
 )
 
 type AddUserRequest struct {
@@ -24,7 +25,7 @@ type AddUserResponse struct {
 func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(AddUserRequest)
-		res, err := s.AddUser(ctx, service.AddUserRequest{
+		res, err := s.AddUser(ctx, add_user.Request{
 			Username:           req.Username,
 			Email:              req.Email,
 			HashedPassword:     req.HashedPassword,
