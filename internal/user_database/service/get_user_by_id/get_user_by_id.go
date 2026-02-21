@@ -27,7 +27,6 @@ type Response struct {
 	HashedAccessToken  string
 }
 
-// интерфейс репозитория должен совпадать с тем, что реализует user_repository.UserRepository
 type UserRepo interface {
 	GetUserByID(id string) (*models.User, error)
 }

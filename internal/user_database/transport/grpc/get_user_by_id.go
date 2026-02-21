@@ -7,29 +7,17 @@ import (
 	pb "github.com/vwency/microservices_golang/proto/user_database"
 )
 
-func decodeGetUserByIDRequest(_ context.Context, req interface{}) (interface{}, error) {
-	r := req.(*pb.GetUserByIDRequest)
-	return service.GetUserByIDRequest{
-		UserID: r.GetUserId(),
-	}, nil
-}
-
-func encodeGetUserByIDResponse(_ context.Context, resp interface{}) (interface{}, error) {
-	r := resp.(service.GetUserByIDResponse)
-	return &pb.GetUserByIDResponse{
-		UserId:             r.UserID,
-		Username:           r.Username,
-		Email:              r.Email,
-		HashedPassword:     r.HashedPassword,
-		HashedRefreshToken: r.HashedRefreshToken,
-		HashedAccessToken:  r.HashedAccessToken,
-	}, nil
-}
-
 func (s *grpcServer) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.GetUserByIDResponse, error) {
-	_, res, err := s.getUserByID.ServeGRPC(ctx, req)
+	res, err := s.ep.GetUserByID.Handle(ctx, service.GetUserByIDRequest{UserID: req.GetUserId()})
 	if err != nil {
-		return nil, GRPCErrorWrapper(err)
+		return nil, err
 	}
-	return res.(*pb.GetUserByIDResponse), nil
+	return &pb.GetUserByIDResponse{
+		UserId:             res.UserID,
+		Username:           res.Username,
+		Email:              res.Email,
+		HashedPassword:     res.HashedPassword,
+		HashedRefreshToken: res.HashedRefreshToken,
+		HashedAccessToken:  res.HashedAccessToken,
+	}, nil
 }

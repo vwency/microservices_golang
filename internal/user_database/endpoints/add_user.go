@@ -3,40 +3,11 @@ package endpoints
 import (
 	"context"
 
-	"github.com/go-kit/kit/endpoint"
 	"github.com/vwency/microservices_golang/internal/user_database/service"
 )
 
-type AddUserRequest struct {
-	Username           string
-	Email              string
-	HashedPassword     string
-	HashedRefreshToken string
-	HashedAccessToken  string
-	UserID             string
-}
+type AddUserEndpoint struct{ svc service.Service }
 
-type AddUserResponse struct {
-	Success bool
-	Message string
-}
-
-func MakeAddUserEndpoint(s service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(AddUserRequest)
-		res, err := s.AddUser(ctx, service.AddUserRequest{
-			Username:           req.Username,
-			Email:              req.Email,
-			HashedPassword:     req.HashedPassword,
-			HashedRefreshToken: req.HashedRefreshToken,
-			HashedAccessToken:  req.HashedAccessToken,
-			UserID:             req.UserID,
-		})
-
-		if err != nil {
-			wrappedErr := WrapServiceError(err)
-			return nil, wrappedErr
-		}
-		return AddUserResponse{Success: res.Success, Message: res.Message}, nil
-	}
+func (e *AddUserEndpoint) Handle(ctx context.Context, req service.AddUserRequest) (service.AddUserResponse, error) {
+	return e.svc.AddUser(ctx, req)
 }

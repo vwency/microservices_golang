@@ -3,29 +3,14 @@ package grpc
 import (
 	"context"
 
-	"github.com/vwency/microservices_golang/internal/user_database/endpoints"
+	"github.com/vwency/microservices_golang/internal/user_database/service"
 	pb "github.com/vwency/microservices_golang/proto/user_database"
 )
 
-func decodeDeleteUserRequest(_ context.Context, request interface{}) (interface{}, error) {
-	req := request.(*pb.DeleteUserRequest)
-	return endpoints.DeleteUserRequest{
-		UserID: req.GetUserId(),
-	}, nil
-}
-
-func encodeDeleteUserResponse(_ context.Context, response interface{}) (interface{}, error) {
-	resp := response.(endpoints.DeleteUserResponse)
-	return &pb.DeleteUserResponse{
-		Success: resp.Success,
-		Message: resp.Message,
-	}, nil
-}
-
 func (s *grpcServer) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
-	_, resp, err := s.deleteUser.ServeGRPC(ctx, req)
+	res, err := s.ep.DeleteUser.Handle(ctx, service.DeleteUserRequest{UserID: req.GetUserId()})
 	if err != nil {
-		return nil, GRPCErrorWrapper(err)
+		return nil, err
 	}
-	return resp.(*pb.DeleteUserResponse), nil
+	return &pb.DeleteUserResponse{Success: res.Success, Message: res.Message}, nil
 }

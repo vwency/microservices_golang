@@ -1,7 +1,6 @@
 package main
 
 import (
-	gokit "github.com/vwency/microservices_golang/cmd/user_database/go-kit"
 	"go.uber.org/fx"
 )
 
@@ -13,9 +12,6 @@ func main() {
 			NewKitLogger,
 			newDatabaseConnection,
 			newRepository,
-			gokit.NewService,
-			gokit.NewEndpoints,
-			gokit.NewGRPCServer,
 			NewTLSCredentials,
 			newListener,
 		),

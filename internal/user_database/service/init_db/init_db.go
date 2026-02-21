@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// Request и Response — dto, структура запроса и ответа.
 type Request struct {
 	ConfigPath string
 }
@@ -21,7 +20,6 @@ type Response struct {
 	Success bool
 }
 
-// Service описывает логику и зависимости.
 type Service struct {
 	Logger log.Logger
 	Repo   interface {
